@@ -486,19 +486,21 @@ void RegisterBonkDamage() {
     });
 }
 
+void UpdateDirtPathFixState(int sceneNum) {
+    switch (sceneNum) {
+        case SCENE_SPOT00:
+        case SCENE_SPOT04:
+        case SCENE_SPOT15:
+            CVarSetInteger("gDirtPathFix", CVarGetInteger("gSceneSpecificDirtPathFix", 0));
+            break;
+        default:
+            CVarClear("gDirtPathFix");
+            break;
+    }
+}
+
 void RegisterPathFix() {
-    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnTransitionEnd>([](int32_t sceneNum) {
-        switch (sceneNum) {
-            case SCENE_SPOT00:
-            case SCENE_SPOT04:
-            case SCENE_SPOT15:
-                CVarSetInteger("gDirtPathFix", CVarGetInteger("gSceneSpecificDirtPathFix", 0));
-                break;
-            default:
-                CVarClear("gDirtPathFix");
-                break;
-        }
-    });
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnTransitionEnd>(UpdateDirtPathFixState);
 }
 
 void InitMods() {
