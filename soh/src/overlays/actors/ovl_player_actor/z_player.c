@@ -5355,7 +5355,7 @@ s32 func_8083AD4C(PlayState* play, Player* this) {
         if (func_8002DD6C(this)) {
             bool shouldUseBowCamera = LINK_IS_ADULT;
 
-            if(CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0)){
+            if(CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) || CVarGetInteger(CVAR_ENHANCEMENT("EquimentAlwaysVisible"), 0)) {
                 shouldUseBowCamera = this->heldItemAction != PLAYER_IA_SLINGSHOT;
             }
             
@@ -6881,7 +6881,8 @@ s32 Player_ActionChange_2(Player* this, PlayState* play) {
             }
 
             if ((this->heldActor == NULL) || Player_HoldsHookshot(this)) {
-                if ((interactedActor->id == ACTOR_BG_TOKI_SWD) && LINK_IS_ADULT) {
+                if ((interactedActor->id == ACTOR_BG_TOKI_SWD) && LINK_IS_ADULT &&
+                    !(Randomizer_GetSettingValue(RSK_SHUFFLE_MASTER_SWORD && !CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER)))) {
                     s32 sp24 = this->itemAction;
 
                     this->itemAction = PLAYER_IA_NONE;
@@ -10258,6 +10259,13 @@ void Player_Init(Actor* thisx, PlayState* play2) {
         }
     }
 
+    if (initMode == 1 && IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MASTER_SWORD) &&
+        !CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER)) {
+        Math_Vec3f_Copy(&this->actor.world.pos, &D_808546F4);
+        this->yaw = this->actor.shape.rot.y = -0x8000;
+        initMode = 13;
+    }
+
     D_80854738[initMode](play, this);
 
     if (initMode != 0) {
@@ -11892,6 +11900,10 @@ void Player_Draw(Actor* thisx, PlayState* play2) {
             lod = 1;
         }
 
+        if (CVarGetInteger(CVAR_ENHANCEMENT("DisableLOD"), 0)) {
+            lod = 0;
+        }
+
         func_80093C80(play);
         Gfx_SetupDL_25Xlu(play->state.gfxCtx);
 
@@ -12293,7 +12305,7 @@ s32 func_8084B3CC(PlayState* play, Player* this) {
 
         if (!func_8002DD6C(this) || Player_HoldsHookshot(this)) {
             s32 projectileItemToUse = ITEM_BOW;
-            if(CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0)){
+            if(CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) || CVarGetInteger(CVAR_ENHANCEMENT("EquimentAlwaysVisible"), 0)) {
                 projectileItemToUse = LINK_IS_ADULT ? ITEM_BOW : ITEM_SLINGSHOT;
             }
 
@@ -14056,6 +14068,15 @@ static AnimSfxEntry D_80854A34[] = {
 
 void Player_Action_8084EFC0(Player* this, PlayState* play) {
     func_8083721C(this);
+
+    //Speeds up bottle emptying animation without making it look too out of place
+    if (CVarGetInteger(CVAR_ENHANCEMENT("FastBottleEmpty"), 0)) {
+        if (this->skelAnime.curFrame <= 60.0f) {
+            this->skelAnime.playSpeed = 3.0f;
+        } else {
+            this->skelAnime.playSpeed = 1.0f;
+        }
+    }
 
     if (LinkAnimation_Update(play, &this->skelAnime)) {
         func_8083C0E8(this, play);

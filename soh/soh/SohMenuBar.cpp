@@ -653,7 +653,7 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Shops and minigames are open both day and night. Requires scene reload to take effect.");
                 UIWidgets::PaddedEnhancementCheckbox("Link as default file name", CVAR_ENHANCEMENT("LinkDefaultName"), true, false);
                 UIWidgets::Tooltip("Allows you to have \"Link\" as a premade file name");
-				UIWidgets::PaddedEnhancementCheckbox("Quit Fishing At Door", CVAR_ENHANCEMENT("QuitFishingAtDoor"), true, false);
+				        UIWidgets::PaddedEnhancementCheckbox("Quit Fishing At Door", CVAR_ENHANCEMENT("QuitFishingAtDoor"), true, false);
                 UIWidgets::Tooltip("Fisherman asks if you want to quit at the door when you still have the rod");
                 UIWidgets::PaddedText("Time Travel with the Song of Time", true, false);
                 UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("TimeTravel"), timeTravelOptions, 0);
@@ -669,6 +669,8 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Selection of warp song in pause menu initiates warp. Disables song playback.");
                 UIWidgets::PaddedEnhancementCheckbox("Faster Bean Patch Skulltulas", CVAR_ENHANCEMENT("FastBeanSkullSpawn"), true, false);
                 UIWidgets::Tooltip("Makes the Gold Skulltulas from bean patches come out faster after the bugs dig into the center.");
+                UIWidgets::PaddedEnhancementCheckbox("Empty Bottles Faster", CVAR_ENHANCEMENT("FastBottleEmpty"), true, false);
+                UIWidgets::Tooltip("Speeds up the bottle emptying animation when dumping out the contents of a bottle.");
                 
                 ImGui::EndTable();
                 ImGui::EndMenu();
@@ -1194,6 +1196,15 @@ void DrawEnhancementsMenu() {
                 "- Blue Warps\n"
                 "- Darunia\n"
                 "- Gold Skulltulas");
+            if (UIWidgets::PaddedEnhancementCheckbox("Show Age-Dependent Equipment", CVAR_ENHANCEMENT("EquimentAlwaysVisible"), true,
+                                                     false)) {
+                UpdatePatchHand();
+            }
+            UIWidgets::Tooltip("Makes all equipment visible, regardless of Age.");
+            if (CVarGetInteger(CVAR_ENHANCEMENT("EquimentAlwaysVisible"), 0) == 1) {
+				UIWidgets::PaddedEnhancementCheckbox("Scale Adult Equipment as Child", CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), true, false);
+				UIWidgets::Tooltip("Scales all of the Adult Equipment, as well and moving some a bit, to fit on Child Link Better. May not work properly with some mods.");
+			}
             UIWidgets::PaddedEnhancementCheckbox("N64 Mode", CVAR_LOW_RES_MODE, true, false);
             UIWidgets::Tooltip("Sets aspect ratio to 4:3 and lowers resolution to 240p, the N64's native resolution");
             UIWidgets::PaddedEnhancementCheckbox("Glitch line-up tick", CVAR_ENHANCEMENT("DrawLineupTick"), true, false);
@@ -1298,6 +1309,10 @@ void DrawEnhancementsMenu() {
                 "This will lower them, making activating them easier");
             UIWidgets::PaddedEnhancementCheckbox("Fix Zora hint dialogue", CVAR_ENHANCEMENT("FixZoraHintDialogue"), true, false);
             UIWidgets::Tooltip("Fixes one Zora's dialogue giving a hint about bringing Ruto's Letter to King Zora to properly occur before moving King Zora rather than after");
+            if (UIWidgets::PaddedEnhancementCheckbox("Fix hand holding Hammer", "gEnhancements.FixHammerHand", true, false)) {
+                UpdatePatchHand();
+            }
+            UIWidgets::Tooltip("Fixes Adult Link have a backwards left hand when holding the Megaton Hammer.");
 
             ImGui::EndMenu();
         }
