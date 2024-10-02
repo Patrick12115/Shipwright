@@ -653,7 +653,7 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Shops and minigames are open both day and night. Requires scene reload to take effect.");
                 UIWidgets::PaddedEnhancementCheckbox("Link as default file name", CVAR_ENHANCEMENT("LinkDefaultName"), true, false);
                 UIWidgets::Tooltip("Allows you to have \"Link\" as a premade file name");
-				UIWidgets::PaddedEnhancementCheckbox("Quit Fishing At Door", CVAR_ENHANCEMENT("QuitFishingAtDoor"), true, false);
+				        UIWidgets::PaddedEnhancementCheckbox("Quit Fishing At Door", CVAR_ENHANCEMENT("QuitFishingAtDoor"), true, false);
                 UIWidgets::Tooltip("Fisherman asks if you want to quit at the door when you still have the rod");
                 UIWidgets::PaddedText("Time Travel with the Song of Time", true, false);
                 UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("TimeTravel"), timeTravelOptions, 0);
@@ -667,6 +667,8 @@ void DrawEnhancementsMenu() {
                     "- Not within range of Ocarina playing spots");
                 UIWidgets::PaddedEnhancementCheckbox("Pause Warp", CVAR_ENHANCEMENT("PauseWarp"), true, false);
                 UIWidgets::Tooltip("Selection of warp song in pause menu initiates warp. Disables song playback.");
+                UIWidgets::PaddedEnhancementCheckbox("Faster Bean Patch Skulltulas", CVAR_ENHANCEMENT("FastBeanSkullSpawn"), true, false);
+                UIWidgets::Tooltip("Makes the Gold Skulltulas from bean patches come out faster after the bugs dig into the center.");
                 UIWidgets::PaddedEnhancementCheckbox("Empty Bottles Faster", CVAR_ENHANCEMENT("FastBottleEmpty"), true, false);
                 UIWidgets::Tooltip("Speeds up the bottle emptying animation when dumping out the contents of a bottle.");
                 
