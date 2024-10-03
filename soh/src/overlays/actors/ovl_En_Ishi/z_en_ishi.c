@@ -257,7 +257,11 @@ void EnIshi_DropCollectible(EnIshi* this, PlayState* play) {
             dropParams = 0;
         }
 
-        Item_DropCollectibleRandom(play, NULL, &this->actor.world.pos, dropParams << 4);
+        if (CVarGetInteger(CVAR_ENHANCEMENT("GrassNeverDropsNothing"), 0)) {
+            Item_DropCollectibleRandomBetter(play, NULL, &this->actor.world.pos, 0);
+        } else {
+            Item_DropCollectibleRandom(play, NULL, &this->actor.world.pos, dropParams << 4);
+        }
     }
 }
 

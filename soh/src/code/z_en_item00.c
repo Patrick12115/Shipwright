@@ -318,245 +318,14 @@ static u8 sItemDropIds[] = {
 };
 
 static u8 sBetterItemDropIds[] = {
-    ITEM00_RUPEE_GREEN,
-    ITEM00_RUPEE_BLUE,
-    0xFF,
-    0xFF,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    0xFF,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_FLEXIBLE,
-    ITEM00_SEEDS,
-    ITEM00_SEEDS,
-    0xFF,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_HEART,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    ITEM00_FLEXIBLE,
-    0xFF,
-    ITEM00_BOMBS_A,
-    0xFF,
-    ITEM00_SEEDS,
-    0xFF,
-    0xFF,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_MAGIC_SMALL,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    ITEM00_SEEDS,
-    ITEM00_SEEDS,
-    0xFF,
-    ITEM00_BOMBS_A,
-    0xFF,
-    ITEM00_FLEXIBLE,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_NUTS,
-    0xFF,
-    ITEM00_SEEDS,
-    ITEM00_SEEDS,
-    ITEM00_NUTS,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_SEEDS,
-    0xFF,
-    ITEM00_FLEXIBLE,
-    0xFF,
-    0xFF,
-    0xFF,
-    0xFF,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_SEEDS,
-    ITEM00_BOMBS_A,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_BOMBS_A,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_RUPEE_GREEN,
-    0xFF,
-    ITEM00_RUPEE_BLUE,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    ITEM00_FLEXIBLE,
-    ITEM00_SEEDS,
-    ITEM00_SEEDS,
-    0xFF,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_RUPEE_BLUE,
-    0xFF,
-    ITEM00_RUPEE_GREEN,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_BOMBS_A,
-    ITEM00_ARROWS_SMALL,
-    0xFF,
-    ITEM00_ARROWS_MEDIUM,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_FLEXIBLE,
-    0xFF,
+    ITEM00_RUPEE_GREEN, 
+    ITEM00_RUPEE_BLUE,   
+    ITEM00_RUPEE_GREEN, 
+    ITEM00_HEART,       
+    ITEM00_BOMBS_A,     
+    ITEM00_ARROWS_SMALL, 
+    ITEM00_MAGIC_SMALL, 
     ITEM00_MAGIC_LARGE,
-    ITEM00_RUPEE_GREEN,
-    0xFF,
-    ITEM00_RUPEE_BLUE,
-    0xFF,
-    ITEM00_RUPEE_GREEN,
-    ITEM00_HEART,
-    ITEM00_FLEXIBLE,
-    ITEM00_BOMBS_A,
-    ITEM00_ARROWS_SMALL,
-    0xFF,
-    0xFF,
-    0xFF,
-    ITEM00_MAGIC_SMALL,
-    0xFF,
-    0xFF,
-    ITEM00_MAGIC_LARGE,
-    ITEM00_ARROWS_LARGE,
-    ITEM00_ARROWS_MEDIUM,
-    ITEM00_ARROWS_MEDIUM,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_FLEXIBLE,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_MEDIUM,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_SMALL,
-    ITEM00_ARROWS_MEDIUM,
-    ITEM00_ARROWS_LARGE,
-    ITEM00_ARROWS_LARGE,
-    ITEM00_MAGIC_LARGE,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_LARGE,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_LARGE,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_LARGE,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_SMALL,
-    ITEM00_MAGIC_LARGE,
-    ITEM00_BOMBS_A,
-    0xFF,
-    ITEM00_BOMBS_A,
-    0xFF,
-    ITEM00_BOMBS_A,
-    ITEM00_FLEXIBLE,
-    ITEM00_BOMBS_A,
-    ITEM00_BOMBS_A,
-    ITEM00_BOMBS_A,
-    0xFF,
-    0xFF,
-    0xFF,
-    0xFF,
-    ITEM00_BOMBS_A,
-    0xFF,
-    ITEM00_BOMBS_A,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_BLUE,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_RED,
-    ITEM00_RUPEE_RED,
-    ITEM00_SEEDS,
-    0xFF,
-    ITEM00_NUTS,
-    0xFF,
-    ITEM00_STICK,
-    0xFF,
-    0xFF,
-    ITEM00_SEEDS,
-    0xFF,
-    0xFF,
-    0xFF,
-    ITEM00_NUTS,
-    0xFF,
-    ITEM00_NUTS,
-    ITEM00_HEART,
-    ITEM00_SEEDS,
-    ITEM00_HEART,
-    0xFF,
-    ITEM00_SEEDS,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    ITEM00_HEART,
-    0xFF,
-    0xFF,
-    ITEM00_HEART,
-    0xFF,
-    ITEM00_HEART,
-    ITEM00_SEEDS,
     ITEM00_FLEXIBLE,
 };
 
@@ -2005,6 +1774,138 @@ void Item_DropCollectibleRandom(PlayState* play, Actor* fromActor, Vec3f* spawnP
             dropId = ITEM00_RUPEE_RED;
         } else {
             return;
+        }
+    }
+
+    if (dropId != 0xFF && (!CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0) || dropId != ITEM00_HEART)) {
+        dropQuantity = sDropQuantities[params + dropTableIndex];
+        while (dropQuantity > 0) {
+            if (!param8000) {
+                dropId = func_8001F404(dropId);
+                if (dropId != 0xFF) {
+                    spawnedActor = (EnItem00*)Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ITEM00, spawnPos->x,
+                                                          spawnPos->y, spawnPos->z, 0, 0, 0, dropId, true);
+                    if ((spawnedActor != NULL) && (dropId != 0xFF)) {
+                        spawnedActor->actor.velocity.y = 8.0f;
+                        spawnedActor->actor.speedXZ = 2.0f;
+                        spawnedActor->actor.gravity = -0.9f;
+                        spawnedActor->actor.world.rot.y = Rand_ZeroOne() * 40000.0f;
+                        Actor_SetScale(&spawnedActor->actor, 0.0f);
+                        EnItem00_SetupAction(spawnedActor, func_8001E304);
+                        spawnedActor->actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
+                        if ((spawnedActor->actor.params != ITEM00_SMALL_KEY) &&
+                            (spawnedActor->actor.params != ITEM00_HEART_PIECE) &&
+                            (spawnedActor->actor.params != ITEM00_HEART_CONTAINER)) {
+                            spawnedActor->actor.room = -1;
+                        }
+                        spawnedActor->unk_15A = 220;
+                    }
+                }
+            } else {
+                if (CVarGetInteger(CVAR_ENHANCEMENT("BushDropFix"), 0)) {
+                    Item_DropCollectible(play, spawnPos, dropId | 0x8000);
+                } else {
+                    Item_DropCollectible(play, spawnPos, params | 0x8000);
+                }
+            }
+            dropQuantity--;
+        }
+    }
+}
+
+void Item_DropCollectibleRandomBetter(PlayState* play, Actor* fromActor, Vec3f* spawnPos, s16 params) {
+    s32 pad;
+    EnItem00* spawnedActor;
+    s16 dropQuantity;
+    s16 param8000;
+    s16 dropTableIndex = Rand_ZeroOne() * 9.0f;
+    u8 dropId;
+
+    param8000 = params & 0x8000;
+    params &= 0x7FFF;
+
+    if (CVarGetInteger(CVAR_ENHANCEMENT("NoRandomDrops"), 0)) {
+        return;
+    }
+
+    if (fromActor != NULL) {
+        if (fromActor->dropFlag) {
+            if (fromActor->dropFlag & 0x01) {
+                params = 1 * 0x10;
+                dropTableIndex = 11;
+            } else if (fromActor->dropFlag & 0x02) {
+                params = 1 * 0x10;
+                dropTableIndex = 6;
+            } else if (fromActor->dropFlag & 0x04) {
+                params = 6 * 0x10;
+                dropTableIndex = 9;
+            } else if (fromActor->dropFlag & 0x08) {
+                params = 3 * 0x10;
+                dropTableIndex = 11;
+            } else if (fromActor->dropFlag & 0x10) {
+                params = 6 * 0x10;
+                dropTableIndex = 12;
+            } else if (fromActor->dropFlag & 0x20) {
+                params = 0 * 0x10;
+                dropTableIndex = 0;
+            } else if (fromActor->dropFlag & 0x40) {
+                params = 0 * 0x10;
+                dropTableIndex = 1;
+            }
+        }
+        if (fromActor->dropFlag & 0x20) {
+            dropId = ITEM00_RUPEE_PURPLE;
+        } else {
+            dropId = sBetterItemDropIds[params + dropTableIndex];
+        }
+    } else {
+        dropId = sBetterItemDropIds[params + dropTableIndex];
+    }
+
+    if (dropId == ITEM00_FLEXIBLE) {
+        if (gSaveContext.health <= 0x10) { // 1 heart or less
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, spawnPos->x, spawnPos->y + 40.0f, spawnPos->z, 0, 0, 0,
+                        FAIRY_HEAL_TIMED, true);
+            EffectSsDeadSound_SpawnStationary(play, spawnPos, NA_SE_EV_BUTTERFRY_TO_FAIRY, true,
+                                              DEADSOUND_REPEAT_MODE_OFF, 40);
+            return;
+        } else if (gSaveContext.health <= 0x30 &&
+                   !CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0)) { // 3 hearts or less
+            params = 0xB * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_HEART;
+        } else if (gSaveContext.health <= 0x50 &&
+                   !CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0)) { // 5 hearts or less
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_HEART;
+        } else if ((gSaveContext.magicLevel != 0) && (gSaveContext.magic == 0)) { // Empty magic meter
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_MAGIC_LARGE;
+        } else if ((gSaveContext.magicLevel != 0) && (gSaveContext.magic <= (gSaveContext.magicLevel >> 1))) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_MAGIC_SMALL;
+        } else if (!LINK_IS_ADULT && (AMMO(ITEM_SLINGSHOT) < 6)) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_SEEDS;
+        } else if (LINK_IS_ADULT && (AMMO(ITEM_BOW) < 6)) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_ARROWS_MEDIUM;
+        } else if (AMMO(ITEM_BOMB) < 6) {
+            params = 0xD * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_BOMBS_A;
+        } else if (gSaveContext.rupees < 11) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_RUPEE_RED;
+        } else {
+            dropTableIndex = Rand_ZeroOne() * 8.0f;
+            dropId = sBetterItemDropIds[dropTableIndex];
         }
     }
 

@@ -998,6 +998,8 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Bonking into trees will have a chance to drop up to 3 sticks. Must already have obtained sticks.");
                 UIWidgets::PaddedEnhancementCheckbox("No Heart Drops", CVAR_ENHANCEMENT("NoHeartDrops"), true, false);
                 UIWidgets::Tooltip("Disables heart drops, but not heart placements, like from a Deku Scrub running off\nThis simulates Hero Mode from other games in the series");
+                UIWidgets::PaddedEnhancementCheckbox("Grass and Rocks Never Drop Nothing", CVAR_ENHANCEMENT("GrassNeverDropsNothing"), true, false);
+                UIWidgets::Tooltip("Prevents grass and small rocks from dropping nothing.");
                 if (UIWidgets::PaddedEnhancementCheckbox("Hyper Bosses", CVAR_ENHANCEMENT("HyperBosses"), true, false)) {
                     UpdateHyperBossesState();
                 }
