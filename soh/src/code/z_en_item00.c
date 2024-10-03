@@ -1827,40 +1827,7 @@ void Item_DropCollectibleRandomBetter(PlayState* play, Actor* fromActor, Vec3f* 
     if (CVarGetInteger(CVAR_ENHANCEMENT("NoRandomDrops"), 0)) {
         return;
     }
-
-    if (fromActor != NULL) {
-        if (fromActor->dropFlag) {
-            if (fromActor->dropFlag & 0x01) {
-                params = 1 * 0x10;
-                dropTableIndex = 11;
-            } else if (fromActor->dropFlag & 0x02) {
-                params = 1 * 0x10;
-                dropTableIndex = 6;
-            } else if (fromActor->dropFlag & 0x04) {
-                params = 6 * 0x10;
-                dropTableIndex = 9;
-            } else if (fromActor->dropFlag & 0x08) {
-                params = 3 * 0x10;
-                dropTableIndex = 11;
-            } else if (fromActor->dropFlag & 0x10) {
-                params = 6 * 0x10;
-                dropTableIndex = 12;
-            } else if (fromActor->dropFlag & 0x20) {
-                params = 0 * 0x10;
-                dropTableIndex = 0;
-            } else if (fromActor->dropFlag & 0x40) {
-                params = 0 * 0x10;
-                dropTableIndex = 1;
-            }
-        }
-        if (fromActor->dropFlag & 0x20) {
-            dropId = ITEM00_RUPEE_PURPLE;
-        } else {
-            dropId = sBetterItemDropIds[params + dropTableIndex];
-        }
-    } else {
-        dropId = sBetterItemDropIds[params + dropTableIndex];
-    }
+    dropId = sBetterItemDropIds[params + dropTableIndex];
 
     if (dropId == ITEM00_FLEXIBLE) {
         if (gSaveContext.health <= 0x10) { // 1 heart or less
@@ -1912,7 +1879,6 @@ void Item_DropCollectibleRandomBetter(PlayState* play, Actor* fromActor, Vec3f* 
     if (dropId != 0xFF && (!CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0) || dropId != ITEM00_HEART)) {
         dropQuantity = sDropQuantities[params + dropTableIndex];
         while (dropQuantity > 0) {
-            if (!param8000) {
                 dropId = func_8001F404(dropId);
                 if (dropId != 0xFF) {
                     spawnedActor = (EnItem00*)Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ITEM00, spawnPos->x,
@@ -1933,13 +1899,6 @@ void Item_DropCollectibleRandomBetter(PlayState* play, Actor* fromActor, Vec3f* 
                         spawnedActor->unk_15A = 220;
                     }
                 }
-            } else {
-                if (CVarGetInteger(CVAR_ENHANCEMENT("BushDropFix"), 0)) {
-                    Item_DropCollectible(play, spawnPos, dropId | 0x8000);
-                } else {
-                    Item_DropCollectible(play, spawnPos, params | 0x8000);
-                }
-            }
             dropQuantity--;
         }
     }
