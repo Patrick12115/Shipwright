@@ -182,6 +182,7 @@ EnItem00* Item_DropCollectible(PlayState* play, Vec3f* spawnPos, s16 params);
 EnItem00* Item_DropCollectible2(PlayState* play, Vec3f* spawnPos, s16 params);
 void EnItem00_CustomItemsParticles(Actor* Parent, PlayState* play, GetItemEntry giEntry);
 void Item_DropCollectibleRandom(PlayState* play, Actor* fromActor, Vec3f* spawnPos, s16 params);
+void Item_DropCollectibleRandomBetter(PlayState* play, Actor* fromActor, Vec3f* spawnPos, s16 params);
 void EffectBlure_ChangeType(EffectBlure* this, int type);
 void EffectBlure_AddVertex(EffectBlure* this, Vec3f* p1, Vec3f* p2);
 void EffectBlure_AddSpace(EffectBlure* this);
