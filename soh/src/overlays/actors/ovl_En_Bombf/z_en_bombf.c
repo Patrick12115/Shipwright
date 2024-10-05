@@ -434,6 +434,9 @@ void EnBombf_Update(Actor* thisx, PlayState* play) {
                 EnBombf_SetupAction(this, EnBombf_Explode);
             }
         }
+        if (CVarGetInteger(CVAR_ENHANCEMENT("NutsExplodeBombs"), 0) && this->timer != 0) {
+            this->bombCollider.info.bumper.dmgFlags |= 1;
+        }
     }
 
     thisx->focus.pos = thisx->world.pos;
