@@ -310,7 +310,7 @@ void EnShopnuts_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s*
         CLOSE_DISPS(play->state.gfxCtx);
     }
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         if (limbIndex == 17) {
             OPEN_DISPS(play->state.gfxCtx);
             Matrix_Push();

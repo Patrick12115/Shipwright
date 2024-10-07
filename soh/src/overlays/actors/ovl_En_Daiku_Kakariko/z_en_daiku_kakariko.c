@@ -540,7 +540,7 @@ void EnDaikuKakariko_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, V
         gSPDisplayList(POLY_OPA_DISP++, carpenterHeadDLists[this->actor.params & 3]);
     }
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         if (limbIndex == 15) {
             Matrix_Push();
             switch(this->actor.params) {

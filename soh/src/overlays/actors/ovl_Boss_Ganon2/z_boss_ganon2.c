@@ -2659,7 +2659,7 @@ void BossGanon2_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s*
         }
     }
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         if (limbIndex == 16) {
             Matrix_Push();
             Matrix_RotateZYX(5977, 4649, 18154, MTXMODE_APPLY);
@@ -2796,7 +2796,7 @@ void BossGanon2_PostLimbDraw2(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s
         Matrix_MultVec3f(&D_80907164, &this->unk_1B8);
     }
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         if (limbIndex == 11) {
             OPEN_DISPS(play->state.gfxCtx);
             Matrix_Push();

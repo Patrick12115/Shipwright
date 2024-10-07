@@ -760,7 +760,7 @@ void EnTk_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* rot, 
         func_80B1D200(play);
     }
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         if (limbIndex == 16) {
             OPEN_DISPS(play->state.gfxCtx);
             Matrix_Push();

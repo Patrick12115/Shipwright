@@ -530,7 +530,7 @@ void EnBomChu_Draw(Actor* thisx, PlayState* play) {
               G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gSPDisplayList(POLY_OPA_DISP++, gBombchuDL);
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         Matrix_Push();
         Matrix_RotateZYX(0, -3100, 17047, MTXMODE_APPLY);
         Matrix_Translate(445.946f, -27.027f, 608.108f, MTXMODE_APPLY);

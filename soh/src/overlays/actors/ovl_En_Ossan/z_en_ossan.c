@@ -2461,7 +2461,7 @@ void EnOssan_DrawStickDirectionPrompts(PlayState* play, EnOssan* this) {
 s32 EnOssan_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* rot, void* thisx) {
     EnOssan* this = (EnOssan*)thisx;
 
-    if (CVarGetInteger("gLetItSnow", 0)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
         if (limbIndex == 8) {
             switch(this->actor.params) {
                 case 4: {

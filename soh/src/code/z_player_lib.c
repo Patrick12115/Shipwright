@@ -1763,21 +1763,27 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
         Matrix_MultVec3f(&sZeroVec, D_80160000);
     }
 
-    if (CVarGetInteger("gLetItSnow", 0) && !(this->stateFlags1 & PLAYER_STATE1_FIRST_PERSON) && !(this->stateFlags2 & PLAYER_STATE2_CRAWLING)) {
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0) && !(this->stateFlags1 & PLAYER_STATE1_FIRST_PERSON) && !(this->stateFlags2 & PLAYER_STATE2_CRAWLING)) {
         if (limbIndex == PLAYER_LIMB_HEAD) {
             OPEN_DISPS(play->state.gfxCtx);
 
             Matrix_Push();
             if (LINK_IS_ADULT) {
-                Matrix_RotateZYX(24000, -16000, -7000, MTXMODE_APPLY);
-                Matrix_Translate(32.0f, 0.0f, 0.0f, MTXMODE_APPLY);
-                Matrix_Scale(1.0f, 1.0f, 1.0f, MTXMODE_APPLY);
+                Matrix_RotateZYX(21099, -16000, -6388, MTXMODE_APPLY);
+                Matrix_Translate(28.57f, -200.0f, 22.67f, MTXMODE_APPLY);
+                Matrix_Scale(0.95f, 0.95f, 0.95f, MTXMODE_APPLY);
                 gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_OPA_DISP++, gLinkAdultHatTrimDL);
             } else {
-                Matrix_RotateZYX(24000, -16000, -7000, MTXMODE_APPLY);
-                Matrix_Translate(32.0f, 0.0f, 0.0f, MTXMODE_APPLY);
-                Matrix_Scale(1.0f, 1.0f, 1.0f, MTXMODE_APPLY);
+                Matrix_RotateZYX(21714, -16000, -5752, MTXMODE_APPLY);
+                Matrix_Translate(32.0f, -150.62f, 19.88f, MTXMODE_APPLY);
+                Matrix_Scale(0.8f, 0.8f, 0.8f, MTXMODE_APPLY);
+                /*Matrix_RotateZYX(CVarGetInteger("gPlayground.Int1X", 0), CVarGetInteger("gPlayground.Int1Y", 0),
+                                 CVarGetInteger("gPlayground.Int1Z", 0), MTXMODE_APPLY);
+                Matrix_Translate(CVarGetFloat("gPlayground.Float1X", 0), CVarGetFloat("gPlayground.Float1Y", 0),
+                                 CVarGetFloat("gPlayground.Float1Z", 0), MTXMODE_APPLY);
+                Matrix_Scale(CVarGetFloat("gPlayground.Float2X", 0), CVarGetFloat("gPlayground.Float2X", 0),
+                             CVarGetFloat("gPlayground.Float2X", 0), MTXMODE_APPLY);*/
                 gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_OPA_DISP++, gLinkChildHatTrimDL);
             }
@@ -1796,9 +1802,15 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
                 Matrix_Translate(-195.0f, 1500.0f, -95.0f, MTXMODE_APPLY);
                 Matrix_Scale(2.0f, 2.0f, 2.0f, MTXMODE_APPLY);
             } else {
-                Matrix_RotateZYX(0, 0, 27000, MTXMODE_APPLY);
-                Matrix_Translate(-950.0f, 2600.0f, -75.0f, MTXMODE_APPLY);
-                Matrix_Scale(2.0f, 2.0f, 2.0f, MTXMODE_APPLY);
+                Matrix_RotateZYX(0, 0, 34000, MTXMODE_APPLY);
+                Matrix_Translate(-1350.0f, 2450.0f, -80.0f, MTXMODE_APPLY);
+                Matrix_Scale(1.5f, 1.5f, 1.5f, MTXMODE_APPLY);
+                /*Matrix_RotateZYX(CVarGetInteger("gPlayground.Int1X", 0), CVarGetInteger("gPlayground.Int1Y", 0),
+                                 CVarGetInteger("gPlayground.Int1Z", 0), MTXMODE_APPLY);
+                Matrix_Translate(CVarGetFloat("gPlayground.Float1X", 0), CVarGetFloat("gPlayground.Float1Y", 0),
+                                 CVarGetFloat("gPlayground.Float1Z", 0), MTXMODE_APPLY);
+                Matrix_Scale(CVarGetFloat("gPlayground.Float2X", 0), CVarGetFloat("gPlayground.Float2X", 0),
+                             CVarGetFloat("gPlayground.Float2X", 0), MTXMODE_APPLY);*/
             }
 
             gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);

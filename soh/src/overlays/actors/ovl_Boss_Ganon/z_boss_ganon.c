@@ -3389,20 +3389,21 @@ void BossGanon_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* 
 
         Matrix_MultVec3f(&sp1C, &this->unk_214);
     }
+    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
+        if (limbIndex == 14) {
+            OPEN_DISPS(play->state.gfxCtx);
+            Matrix_Push();
+            Matrix_RotateZYX(7749, 0, -11956, MTXMODE_APPLY);
+            Matrix_Translate(675.676f, -229.730f, 148.649f, MTXMODE_APPLY);
+            Matrix_Scale(1.014f, 1.014f, 1.014f, MTXMODE_APPLY);
 
-    if (limbIndex == 14) {
-        OPEN_DISPS(play->state.gfxCtx);
-        Matrix_Push();
-        Matrix_RotateZYX(7749, 0, -11956, MTXMODE_APPLY);
-        Matrix_Translate(675.676f, -229.730f, 148.649f, MTXMODE_APPLY);
-        Matrix_Scale(1.014f, 1.014f, 1.014f, MTXMODE_APPLY);
-
-        gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-        Color_RGBA8 color = { 255, 0, 0, 255 };
-        gDPSetEnvColor(POLY_OPA_DISP++, color.r, color.g, color.b, color.a);
-        gSPDisplayList(POLY_OPA_DISP++, gPaperCrownGenericDL);
-        Matrix_Pop();
-        CLOSE_DISPS(play->state.gfxCtx);
+            gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+            Color_RGBA8 color = { 255, 0, 0, 255 };
+            gDPSetEnvColor(POLY_OPA_DISP++, color.r, color.g, color.b, color.a);
+            gSPDisplayList(POLY_OPA_DISP++, gPaperCrownGenericDL);
+            Matrix_Pop();
+            CLOSE_DISPS(play->state.gfxCtx);
+        }
     }
 }
 

@@ -206,6 +206,7 @@ void DrawSettingsMenu() {
 
     if (ImGui::IsKeyPressed(ImGuiKey_F2)) {
         CVarSetInteger(CVAR_ENHANCEMENT("AltAssets"), !CVarGetInteger(CVAR_ENHANCEMENT("AltAssets"), 0));
+        CVarSetInteger(CVAR_GENERAL("LetItSnow"), !CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0));
     }
 
     if (ImGui::BeginMenu("Settings"))
