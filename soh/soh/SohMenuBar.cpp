@@ -206,7 +206,13 @@ void DrawSettingsMenu() {
 
     if (ImGui::IsKeyPressed(ImGuiKey_F2)) {
         CVarSetInteger(CVAR_ENHANCEMENT("AltAssets"), !CVarGetInteger(CVAR_ENHANCEMENT("AltAssets"), 0));
-        CVarSetInteger(CVAR_GENERAL("LetItSnow"), !CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0));
+    }
+    if (!(CVarGetInteger(CVAR_ENHANCEMENT("AltAssets"), 0))) {
+        // AltAssets is not active, so LetItSnow should be active
+        CVarSetInteger(CVAR_GENERAL("LetItSnow"), 1); // Activate LetItSnow
+    } else {
+        // AltAssets is active, so LetItSnow should be inactive
+        CVarSetInteger(CVAR_GENERAL("LetItSnow"), 0); // Deactivate LetItSnow
     }
 
     if (ImGui::BeginMenu("Settings"))

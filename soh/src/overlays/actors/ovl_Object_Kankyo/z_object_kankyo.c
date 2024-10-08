@@ -716,8 +716,16 @@ void ObjectKankyo_DrawSnow(ObjectKankyo* this2, PlayState* play2) {
             Matrix_Scale(0.05f, 0.05f, 0.05f, MTXMODE_APPLY);
             gDPPipeSync(POLY_XLU_DISP++);
 
-            gDPSetPrimColor(POLY_XLU_DISP++, 0, 0, 200, 200, 200, 180);
-            gDPSetEnvColor(POLY_XLU_DISP++, 200, 200, 200, 180);
+            if (!(CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0))) {
+                // Set the snow color to red
+                gDPSetPrimColor(POLY_XLU_DISP++, 0, 0, 255, 0, 0, 180); // Red snow
+                gDPSetEnvColor(POLY_XLU_DISP++, 255, 0, 0, 180);        // Red snow
+            } else {
+                // Set the snow color to white (default)
+                gDPSetPrimColor(POLY_XLU_DISP++, 0, 0, 200, 200, 200, 180); // White snow
+                gDPSetEnvColor(POLY_XLU_DISP++, 200, 200, 200, 180);        // White snow
+            }
+
 
             gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
                       G_MTX_LOAD);
