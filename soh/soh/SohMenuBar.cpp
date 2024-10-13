@@ -669,8 +669,16 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Holding down B skips text");
                 UIWidgets::PaddedEnhancementSliderInt("King Zora Speed: %dx", "##MWEEPSPEED", CVAR_ENHANCEMENT("MweepSpeed"), 1, 5, "", 1, true, false, true);
                 UIWidgets::PaddedEnhancementSliderInt("Vine/Ladder Climb speed +%d", "##CLIMBSPEED", CVAR_ENHANCEMENT("ClimbSpeed"), 0, 12, "", 0, true, false, true);
-                UIWidgets::PaddedEnhancementSliderInt("Block pushing speed +%d", "##BLOCKSPEED", CVAR_ENHANCEMENT("FasterBlockPush"), 0, 5, "", 0, true, false, true);
+                if (UIWidgets::PaddedEnhancementSliderInt("Block pushing speed +%d", "##BLOCKSPEED", CVAR_ENHANCEMENT("FasterBlockPush"), 0, 5, "", 0, true, false, true)) {
+                    if (!CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0)) {
+                        CVarSetInteger(CVAR_ENHANCEMENT("FasterForestPillars"), 0);
+                    }
+                }
                 UIWidgets::PaddedEnhancementSliderInt("Crawl speed %dx", "##CRAWLSPEED", CVAR_ENHANCEMENT("CrawlSpeed"), 1, 4, "", 1, true, false, true);
+                if (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0)) {
+                    UIWidgets::PaddedEnhancementCheckbox("Faster Forest Basement Pillars", CVAR_ENHANCEMENT("FasterForestPillars"), false, false);
+                    UIWidgets::Tooltip("Applies the block push speed to the Forest Temple basement pillars and allows Link to move during the cutscene");
+                }
                 UIWidgets::PaddedEnhancementCheckbox("Faster Heavy Block Lift", CVAR_ENHANCEMENT("FasterHeavyBlockLift"), false, false);
                 UIWidgets::Tooltip("Speeds up lifting silver rocks and obelisks");
                 UIWidgets::PaddedEnhancementCheckbox("Skip Pickup Messages", CVAR_ENHANCEMENT("FastDrops"), true, false);
@@ -743,7 +751,7 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Shops and minigames are open both day and night. Requires scene reload to take effect.");
                 UIWidgets::PaddedEnhancementCheckbox("Link as default file name", CVAR_ENHANCEMENT("LinkDefaultName"), true, false);
                 UIWidgets::Tooltip("Allows you to have \"Link\" as a premade file name");
-				UIWidgets::PaddedEnhancementCheckbox("Quit Fishing At Door", CVAR_ENHANCEMENT("QuitFishingAtDoor"), true, false);
+				        UIWidgets::PaddedEnhancementCheckbox("Quit Fishing At Door", CVAR_ENHANCEMENT("QuitFishingAtDoor"), true, false);
                 UIWidgets::Tooltip("Fisherman asks if you want to quit at the door when you still have the rod");
                 UIWidgets::PaddedText("Time Travel with the Song of Time", true, false);
                 UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("TimeTravel"), timeTravelOptions, 0);
@@ -757,6 +765,10 @@ void DrawEnhancementsMenu() {
                     "- Not within range of Ocarina playing spots");
                 UIWidgets::PaddedEnhancementCheckbox("Pause Warp", CVAR_ENHANCEMENT("PauseWarp"), true, false);
                 UIWidgets::Tooltip("Selection of warp song in pause menu initiates warp. Disables song playback.");
+                UIWidgets::PaddedEnhancementCheckbox("Faster Bean Patch Skulltulas", CVAR_ENHANCEMENT("FastBeanSkullSpawn"), true, false);
+                UIWidgets::Tooltip("Makes the Gold Skulltulas from bean patches come out faster after the bugs dig into the center.");
+                UIWidgets::PaddedEnhancementCheckbox("Empty Bottles Faster", CVAR_ENHANCEMENT("FastBottleEmpty"), true, false);
+                UIWidgets::Tooltip("Speeds up the bottle emptying animation when dumping out the contents of a bottle.");
                 
                 ImGui::EndTable();
                 ImGui::EndMenu();
@@ -792,7 +804,7 @@ void DrawEnhancementsMenu() {
                 UIWidgets::PaddedEnhancementCheckbox("Mask Select in Inventory", CVAR_ENHANCEMENT("MaskSelect"), true, false);
                 UIWidgets::Tooltip("After completing the mask trading sub-quest, press A and any direction on the mask slot to change masks");
                 UIWidgets::PaddedEnhancementCheckbox("Nuts explode bombs", CVAR_ENHANCEMENT("NutsExplodeBombs"), true, false);
-                UIWidgets::Tooltip("Makes nuts explode bombs, similar to how they interact with bombchus. This does not affect bombflowers.");
+                UIWidgets::Tooltip("Makes nuts explode bombs and bombflowers, similar to how they interact with bombchus.");
                 UIWidgets::PaddedEnhancementCheckbox("Equip Multiple Arrows at Once", CVAR_ENHANCEMENT("SeparateArrows"), true, false);
                 UIWidgets::Tooltip("Allow the bow and magic arrows to be equipped at the same time on different slots. (Note this will disable the behaviour of the 'Equip Dupe' glitch)");
                 UIWidgets::PaddedEnhancementCheckbox("Bow as Child/Slingshot as Adult", CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), true, false);
@@ -1095,6 +1107,13 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Bonking into trees will have a chance to drop up to 3 sticks. Must already have obtained sticks.");
                 UIWidgets::PaddedEnhancementCheckbox("No Heart Drops", CVAR_ENHANCEMENT("NoHeartDrops"), true, false);
                 UIWidgets::Tooltip("Disables heart drops, but not heart placements, like from a Deku Scrub running off\nThis simulates Hero Mode from other games in the series");
+                if (!CVarGetInteger(CVAR_ENHANCEMENT("NoRandomDrops"), 0)) {
+                    UIWidgets::PaddedEnhancementCheckbox("Grass and Rocks Never Drop Nothing",
+                                                         CVAR_ENHANCEMENT("GrassNeverDropsNothing"), true, false);
+                    UIWidgets::Tooltip("Prevents grass and small rocks from dropping nothing.");
+                } else {
+                    CVarSetInteger(CVAR_ENHANCEMENT("GrassNeverDropsNothing"), 0);
+                }
                 if (UIWidgets::PaddedEnhancementCheckbox("Hyper Bosses", CVAR_ENHANCEMENT("HyperBosses"), true, false)) {
                     UpdateHyperBossesState();
                 }
@@ -1300,6 +1319,15 @@ void DrawEnhancementsMenu() {
                 "- Blue Warps\n"
                 "- Darunia\n"
                 "- Gold Skulltulas");
+            if (UIWidgets::PaddedEnhancementCheckbox("Show Age-Dependent Equipment", CVAR_ENHANCEMENT("EquimentAlwaysVisible"), true,
+                                                     false)) {
+                UpdatePatchHand();
+            }
+            UIWidgets::Tooltip("Makes all equipment visible, regardless of Age.");
+            if (CVarGetInteger(CVAR_ENHANCEMENT("EquimentAlwaysVisible"), 0) == 1) {
+				UIWidgets::PaddedEnhancementCheckbox("Scale Adult Equipment as Child", CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), true, false);
+				UIWidgets::Tooltip("Scales all of the Adult Equipment, as well and moving some a bit, to fit on Child Link Better. May not work properly with some mods.");
+			}
             UIWidgets::PaddedEnhancementCheckbox("N64 Mode", CVAR_LOW_RES_MODE, true, false);
             UIWidgets::Tooltip("Sets aspect ratio to 4:3 and lowers resolution to 240p, the N64's native resolution");
             UIWidgets::PaddedEnhancementCheckbox("Glitch line-up tick", CVAR_ENHANCEMENT("DrawLineupTick"), true, false);
@@ -1405,6 +1433,10 @@ void DrawEnhancementsMenu() {
                 "This will lower them, making activating them easier");
             UIWidgets::PaddedEnhancementCheckbox("Fix Zora hint dialogue", CVAR_ENHANCEMENT("FixZoraHintDialogue"), true, false);
             UIWidgets::Tooltip("Fixes one Zora's dialogue giving a hint about bringing Ruto's Letter to King Zora to properly occur before moving King Zora rather than after");
+            if (UIWidgets::PaddedEnhancementCheckbox("Fix hand holding Hammer", "gEnhancements.FixHammerHand", true, false)) {
+                UpdatePatchHand();
+            }
+            UIWidgets::Tooltip("Fixes Adult Link have a backwards left hand when holding the Megaton Hammer.");
 
             ImGui::EndMenu();
         }

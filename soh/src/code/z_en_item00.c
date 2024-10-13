@@ -318,6 +318,18 @@ static u8 sItemDropIds[] = {
     ITEM00_FLEXIBLE,
 };
 
+static u8 sBetterItemDropIds[] = {
+    ITEM00_RUPEE_GREEN, 
+    ITEM00_RUPEE_BLUE,   
+    ITEM00_RUPEE_GREEN, 
+    ITEM00_HEART,       
+    ITEM00_BOMBS_A,     
+    ITEM00_ARROWS_SMALL, 
+    ITEM00_MAGIC_SMALL, 
+    ITEM00_MAGIC_LARGE,
+    ITEM00_FLEXIBLE,
+};
+
 static u8 sDropQuantities[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
@@ -1213,6 +1225,11 @@ void EnItem00_CustomItemsParticles(Actor* Parent, PlayState* play, GetItemEntry 
                 case ITEM_NUT_UPGRADE_40:
                     color_slot = 7;
                     break;
+                case ITEM_BOTTLE:
+                case ITEM_MILK_BOTTLE:
+                case ITEM_LETTER_RUTO:
+                    color_slot = 8;
+                    break;
                 default:
                     return;
             }
@@ -1222,13 +1239,34 @@ void EnItem00_CustomItemsParticles(Actor* Parent, PlayState* play, GetItemEntry 
                 case RG_MAGIC_SINGLE:
                 case RG_MAGIC_DOUBLE:
                 case RG_MAGIC_BEAN_PACK:
+                case RG_BOTTLE_WITH_GREEN_POTION:
+                case RG_BOTTLE_WITH_BUGS:
                     color_slot = 0;
+                    break;
+                case RG_BOTTLE_WITH_FISH:
+                    color_slot = 2;
+                    break;
+                case RG_BOTTLE_WITH_POE:
+                    color_slot = 4;
+                    break;
+                case RG_BOTTLE_WITH_BIG_POE:
+                    color_slot = 5;
                     break;
                 case RG_DOUBLE_DEFENSE:
                     color_slot = 8;
                     break;
                 case RG_PROGRESSIVE_BOMBCHUS:
                     color_slot = 9;
+                    break;
+                case RG_BOTTLE_WITH_FAIRY:
+                    color_slot = 10;
+                    break;
+                case RG_BOTTLE_WITH_RED_POTION:
+                    color_slot = 11;
+                    break;
+                case RG_BOTTLE_WITH_BLUE_FIRE:
+                case RG_BOTTLE_WITH_BLUE_POTION:
+                    color_slot = 12;
                     break;
                 default:
                     return;
@@ -1239,21 +1277,24 @@ void EnItem00_CustomItemsParticles(Actor* Parent, PlayState* play, GetItemEntry 
     }
 
     // Color of the circle for the particles
-    static Color_RGBA8 mainColors[10][3] = {
-        { 34, 255, 76 },   // Minuet, Bean Pack, and Magic Upgrades
+    static Color_RGBA8 mainColors[13][3] = {
+        { 34, 255, 76 },   // Minuet, Bean Pack, Magic Upgrades, Bottle with Green Potion, and Bottle with Bugs
         { 177, 35, 35 },   // Bolero
-        { 115, 251, 253 }, // Serenade
+        { 115, 251, 253 }, // Serenade and Bottle with Fish
         { 177, 122, 35 },  // Requiem
-        { 177, 28, 212 },  // Nocturne
-        { 255, 255, 92 },  // Prelude
+        { 177, 28, 212 },  // Nocturne and Bottle with Poe
+        { 255, 255, 92 },  // Prelude and Bottle with Big Poe
         { 31, 152, 49 },   // Stick Upgrade
         { 222, 182, 20 },  // Nut Upgrade
-        { 255, 255, 255 }, // Double Defense
-        { 19, 120, 182 }   // Progressive Bombchu
+        { 255, 255, 254 }, // Double Defense, Empty Bottle, Bottle with Milk, and Bottle with Ruto's Letter
+        { 19, 120, 182 },  // Progressive Bombchu
+        { 255, 205, 255 }, // Bottle with Fairy
+        { 255, 118, 118 }, // Bottle with Red Potion
+        { 154, 204, 255 }  // Bottle with Blue Fire and Bottle with Blue Potion
     };
 
     // Color of the faded flares stretching off the particles
-    static Color_RGBA8 flareColors[10][3] = {
+    static Color_RGBA8 flareColors[13][3] = {
         { 30, 110, 30 },   // Minuet, Bean Pack, and Magic Upgrades
         { 90, 10, 10 },    // Bolero
         { 35, 35, 177 },   // Serenade
@@ -1263,7 +1304,10 @@ void EnItem00_CustomItemsParticles(Actor* Parent, PlayState* play, GetItemEntry 
         { 5, 50, 10 },     // Stick Upgrade
         { 150, 100, 5 },   // Nut Upgrade
         { 154, 154, 154 }, // Double Defense
-        { 204, 102, 0 }    // Progressive Bombchu
+        { 204, 102, 0 },   // Progressive Bombchu
+        { 216, 70, 216 },  // Bottle with Fairy
+        { 90, 10, 10 },    // Bottle with Red Potion
+        { 35, 35, 177 }    // Bottle with Blue Fire
     };
 
     static Vec3f velocity = { 0.0f, 0.0f, 0.0f };
@@ -1733,6 +1777,97 @@ void Item_DropCollectibleRandom(PlayState* play, Actor* fromActor, Vec3f* spawnP
                     Item_DropCollectible(play, spawnPos, params | 0x8000);
                 }
             }
+            dropQuantity--;
+        }
+    }
+}
+
+void Item_DropCollectibleRandomBetter(PlayState* play, Actor* fromActor, Vec3f* spawnPos, s16 params) {
+    s32 pad;
+    EnItem00* spawnedActor;
+    s16 dropQuantity;
+    s16 param8000;
+    s16 dropTableIndex = Rand_ZeroOne() * 9.0f;
+    u8 dropId;
+
+    param8000 = params & 0x8000;
+    params &= 0x7FFF;
+
+    if (CVarGetInteger(CVAR_ENHANCEMENT("NoRandomDrops"), 0)) {
+        return;
+    }
+    dropId = sBetterItemDropIds[params + dropTableIndex];
+
+    if (dropId == ITEM00_FLEXIBLE) {
+        if (gSaveContext.health <= 0x10) { // 1 heart or less
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, spawnPos->x, spawnPos->y + 40.0f, spawnPos->z, 0, 0, 0,
+                        FAIRY_HEAL_TIMED, true);
+            EffectSsDeadSound_SpawnStationary(play, spawnPos, NA_SE_EV_BUTTERFRY_TO_FAIRY, true,
+                                              DEADSOUND_REPEAT_MODE_OFF, 40);
+            return;
+        } else if (gSaveContext.health <= 0x30 &&
+                   !CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0)) { // 3 hearts or less
+            params = 0xB * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_HEART;
+        } else if (gSaveContext.health <= 0x50 &&
+                   !CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0)) { // 5 hearts or less
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_HEART;
+        } else if ((gSaveContext.magicLevel != 0) && (gSaveContext.magic == 0)) { // Empty magic meter
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_MAGIC_LARGE;
+        } else if ((gSaveContext.magicLevel != 0) && (gSaveContext.magic <= (gSaveContext.magicLevel >> 1))) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_MAGIC_SMALL;
+        } else if (!LINK_IS_ADULT && (AMMO(ITEM_SLINGSHOT) < 6)) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_SEEDS;
+        } else if (LINK_IS_ADULT && (AMMO(ITEM_BOW) < 6)) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_ARROWS_MEDIUM;
+        } else if (AMMO(ITEM_BOMB) < 6) {
+            params = 0xD * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_BOMBS_A;
+        } else if (gSaveContext.rupees < 11) {
+            params = 0xA * 0x10;
+            dropTableIndex = 0x0;
+            dropId = ITEM00_RUPEE_RED;
+        } else {
+            dropTableIndex = Rand_ZeroOne() * 8.0f;
+            dropId = sBetterItemDropIds[dropTableIndex];
+        }
+    }
+
+    if (dropId != 0xFF && (!CVarGetInteger(CVAR_ENHANCEMENT("NoHeartDrops"), 0) || dropId != ITEM00_HEART)) {
+        dropQuantity = sDropQuantities[params + dropTableIndex];
+        while (dropQuantity > 0) {
+                dropId = func_8001F404(dropId);
+                if (dropId != 0xFF) {
+                    spawnedActor = (EnItem00*)Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ITEM00, spawnPos->x,
+                                                          spawnPos->y, spawnPos->z, 0, 0, 0, dropId, true);
+                    if ((spawnedActor != NULL) && (dropId != 0xFF)) {
+                        spawnedActor->actor.velocity.y = 8.0f;
+                        spawnedActor->actor.speedXZ = 2.0f;
+                        spawnedActor->actor.gravity = -0.9f;
+                        spawnedActor->actor.world.rot.y = Rand_ZeroOne() * 40000.0f;
+                        Actor_SetScale(&spawnedActor->actor, 0.0f);
+                        EnItem00_SetupAction(spawnedActor, func_8001E304);
+                        spawnedActor->actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
+                        if ((spawnedActor->actor.params != ITEM00_SMALL_KEY) &&
+                            (spawnedActor->actor.params != ITEM00_HEART_PIECE) &&
+                            (spawnedActor->actor.params != ITEM00_HEART_CONTAINER)) {
+                            spawnedActor->actor.room = -1;
+                        }
+                        spawnedActor->unk_15A = 220;
+                    }
+                }
             dropQuantity--;
         }
     }

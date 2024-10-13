@@ -134,7 +134,11 @@ void EnKusa_DropCollectible(EnKusa* this, PlayState* play) {
             if (dropParams >= 0xD) {
                 dropParams = 0;
             }
-            Item_DropCollectibleRandom(play, NULL, &this->actor.world.pos, dropParams << 4);
+            if (CVarGetInteger(CVAR_ENHANCEMENT("GrassNeverDropsNothing"), 0)) {
+                Item_DropCollectibleRandomBetter(play, NULL, &this->actor.world.pos, 0);
+            } else {
+                Item_DropCollectibleRandom(play, NULL, &this->actor.world.pos, dropParams << 4);
+            }
             break;
         case ENKUSA_TYPE_1:
             if (CVarGetInteger(CVAR_ENHANCEMENT("NoRandomDrops"), 0)) {
