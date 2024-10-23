@@ -66,9 +66,7 @@ namespace SOH {
     }
 
     void ConfigVersion2Updater::Update(Ship::Config* conf) {
-        for (auto seq : AudioCollection::Instance->GetAllSequences()) {
-            CVarClear(std::string("gAudioEditor.ReplacedSequences." + seq.second.sfxKey).c_str());
-        }
+        CVarClearBlock("gAudioEditor.ReplacedSequences");
     }
 
     void ConfigVersion3Updater::Update(Ship::Config* conf) {
@@ -78,6 +76,12 @@ namespace SOH {
                 CVarCopy(migration.from.c_str(), migration.to.value().c_str());
             }
             CVarClear(migration.from.c_str());
+        }
+        if (conf->Contains("CVars.gEnhancements.InjectItemCounts")) {
+            CVarClear("gEnhancements.InjectItemCounts");
+            CVarSetInteger("gEnhancements.InjectItemCounts.GoldSkulltula", 1);
+            CVarSetInteger("gEnhancements.InjectItemCounts.HeartContainer", 1);
+            CVarSetInteger("gEnhancements.InjectItemCounts.HeartPiece", 1);
         }
     }
 }

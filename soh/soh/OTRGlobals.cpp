@@ -79,10 +79,10 @@
 #include "ActorDB.h"
 
 #ifdef ENABLE_REMOTE_CONTROL
-#include "Enhancements/crowd-control/CrowdControl.h"
-#include "Enhancements/game-interactor/GameInteractor_Sail.h"
+#include "soh/Network/CrowdControl/CrowdControl.h"
+#include "soh/Network/Sail/Sail.h"
 CrowdControl* CrowdControl::Instance;
-GameInteractorSail* GameInteractorSail::Instance;
+Sail* Sail::Instance;
 #endif
 
 #include "Enhancements/mods.h"
@@ -348,7 +348,7 @@ OTRGlobals::OTRGlobals() {
     context->InitCrashHandler();
     context->InitConsole();
 
-    auto sohInputEditorWindow = std::make_shared<SohInputEditorWindow>(CVAR_CONTROLLER_CONFIGURATION_WINDOW_OPEN, "Controller Configuration");
+    auto sohInputEditorWindow = std::make_shared<SohInputEditorWindow>(CVAR_WINDOW("ControllerConfiguration"), "Controller Configuration");
     context->InitWindow({ sohInputEditorWindow });
 
     auto overlay = context->GetInstance()->GetWindow()->GetGui()->GetGameOverlay();
@@ -1173,7 +1173,7 @@ extern "C" void InitOTR() {
 
 #ifdef ENABLE_REMOTE_CONTROL
     CrowdControl::Instance = new CrowdControl();
-    GameInteractorSail::Instance = new GameInteractorSail();
+    Sail::Instance = new Sail();
 #endif
 
     OTRMessage_Init();
@@ -1203,15 +1203,11 @@ extern "C" void InitOTR() {
     srand(now);
 #ifdef ENABLE_REMOTE_CONTROL
     SDLNet_Init();
-    if (CVarGetInteger(CVAR_REMOTE("Enabled"), 0)) {
-        switch (CVarGetInteger(CVAR_REMOTE("Scheme"), GI_SCHEME_SAIL)) {
-            case GI_SCHEME_SAIL:
-                GameInteractorSail::Instance->Enable();
-                break;
-            case GI_SCHEME_CROWD_CONTROL:
-                CrowdControl::Instance->Enable();
-                break;
-        }
+    if (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) {
+        CrowdControl::Instance->Enable();
+    }
+    if (CVarGetInteger(CVAR_REMOTE_SAIL("Enabled"), 0)) {
+        Sail::Instance->Enable();
     }
 #endif
 }
@@ -1224,15 +1220,11 @@ extern "C" void DeinitOTR() {
     SaveManager_ThreadPoolWait();
     OTRAudio_Exit();
 #ifdef ENABLE_REMOTE_CONTROL
-    if (CVarGetInteger(CVAR_REMOTE("Enabled"), 0)) {
-        switch (CVarGetInteger(CVAR_REMOTE("Scheme"), GI_SCHEME_SAIL)) {
-            case GI_SCHEME_SAIL:
-                GameInteractorSail::Instance->Disable();
-                break;
-            case GI_SCHEME_CROWD_CONTROL:
-                CrowdControl::Instance->Disable();
-                break;
-        }
+    if (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) {
+        CrowdControl::Instance->Disable();
+    }
+    if (CVarGetInteger(CVAR_REMOTE_SAIL("Enabled"), 0)) {
+        Sail::Instance->Disable();
     }
     SDLNet_Quit();
 #endif
@@ -1432,6 +1424,12 @@ extern "C" void Graph_ProcessGfxCommands(Gfx* commands) {
 
     int threshold = CVarGetInteger(CVAR_SETTING("ExtraLatencyThreshold"), 80);
     wnd->SetMaximumFrameLatency(threshold > 0 && target_fps >= threshold ? 2 : 1);
+
+    // When the gfx debugger is active, only run with the final mtx
+    if (GfxDebuggerIsDebugging()) {
+        mtx_replacements.clear();
+        mtx_replacements.emplace_back();
+    }
 
     RunCommands(commands, mtx_replacements);
 
@@ -2275,7 +2273,7 @@ extern "C" void OTRControllerCallback(uint8_t rumble) {
 
     static std::shared_ptr<SohInputEditorWindow> controllerConfigWindow = nullptr;
     if (controllerConfigWindow == nullptr) {
-        controllerConfigWindow = std::dynamic_pointer_cast<SohInputEditorWindow>(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Input Editor"));
+        controllerConfigWindow = std::dynamic_pointer_cast<SohInputEditorWindow>(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Controller Configuration"));
     } else if (controllerConfigWindow->TestingRumble()) {
         return;
     }
