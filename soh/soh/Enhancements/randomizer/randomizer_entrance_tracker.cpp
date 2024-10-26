@@ -19,6 +19,7 @@ extern PlayState* gPlayState;
 }
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "entrance.h"
 
 #define COLOR_ORANGE IM_COL32(230, 159, 0, 255)
 #define COLOR_GREEN IM_COL32(0, 158, 115, 255)
@@ -468,6 +469,7 @@ void SortEntranceListByType(EntranceOverride* entranceList, u8 byDest) {
 }
 
 void SortEntranceListByArea(EntranceOverride* entranceList, u8 byDest) {
+    auto entranceCtx = Rando::Context::GetInstance()->GetEntranceShuffler();
     EntranceOverride tempList[ENTRANCE_OVERRIDES_MAX_COUNT] = { 0 };
 
     // Store to temp
@@ -507,10 +509,10 @@ void SortEntranceListByArea(EntranceOverride* entranceList, u8 byDest) {
         // and otherwise by group
         for (size_t group = ENTRANCE_GROUP_KOKIRI_FOREST; group < SPOILER_ENTRANCE_GROUP_COUNT; group++) {
             for (size_t i = 0; i < ENTRANCE_OVERRIDES_MAX_COUNT; i++) {
-                if (Entrance_EntranceIsNull(&gSaveContext.entranceOverrides[i])) {
+                if (Entrance_EntranceIsNull(&entranceCtx->entranceOverrides[i])) {
                     continue;
                 }
-                const EntranceData* curEntrance = GetEntranceData(gSaveContext.entranceOverrides[i].index);
+                const EntranceData* curEntrance = GetEntranceData(entranceCtx->entranceOverrides[i].index);
                 if (curEntrance->srcGroup != group) {
                     continue;
                 }
@@ -570,6 +572,7 @@ void ClearEntranceTrackingData() {
 }
 
 void InitEntranceTrackingData() {
+    auto entranceCtx = Rando::Context::GetInstance()->GetEntranceShuffler();
     gEntranceTrackingData = {0};
 
     // Check if entrance randomization is disabled
@@ -579,11 +582,11 @@ void InitEntranceTrackingData() {
 
     // Set total and group counts
     for (size_t i = 0; i < ENTRANCE_OVERRIDES_MAX_COUNT; i++) {
-        if (Entrance_EntranceIsNull(&gSaveContext.entranceOverrides[i])) {
+        if (Entrance_EntranceIsNull(&entranceCtx->entranceOverrides[i])) {
             break;
         }
-        const EntranceData* index = GetEntranceData(gSaveContext.entranceOverrides[i].index);
-        const EntranceData* override = GetEntranceData(gSaveContext.entranceOverrides[i].override);
+        const EntranceData* index = GetEntranceData(entranceCtx->entranceOverrides[i].index);
+        const EntranceData* override = GetEntranceData(entranceCtx->entranceOverrides[i].override);
 
         if (index->srcGroup == ENTRANCE_GROUP_ONE_WAY) {
             gEntranceTrackingData.GroupEntranceCounts[ENTRANCE_SOURCE_AREA][ENTRANCE_GROUP_ONE_WAY]++;
@@ -625,15 +628,98 @@ void InitEntranceTrackingData() {
 
     // Sort entrances by group and type in entranceData
     for (size_t i = 0; i < ENTRANCE_OVERRIDES_MAX_COUNT; i++) {
-        srcListSortedByArea[i] = gSaveContext.entranceOverrides[i];
-        destListSortedByArea[i] = gSaveContext.entranceOverrides[i];
-        srcListSortedByType[i] = gSaveContext.entranceOverrides[i];
-        destListSortedByType[i] = gSaveContext.entranceOverrides[i];
+        srcListSortedByArea[i] = entranceCtx->entranceOverrides[i];
+        destListSortedByArea[i] = entranceCtx->entranceOverrides[i];
+        srcListSortedByType[i] = entranceCtx->entranceOverrides[i];
+        destListSortedByType[i] = entranceCtx->entranceOverrides[i];
     }
     SortEntranceListByArea(srcListSortedByArea, 0);
     SortEntranceListByArea(destListSortedByArea, 1);
     SortEntranceListByType(srcListSortedByType, 0);
     SortEntranceListByType(destListSortedByType, 1);
+}
+
+void EntranceTrackerSettingsWindow::DrawElement() {
+    if (ImGui::BeginTable("entranceTrackerSettings", 1, ImGuiTableFlags_BordersInnerH)) {
+
+        ImGui::TableNextColumn();
+
+        UIWidgets::Spacer(0);
+        ImGui::TextWrapped("The entrance tracker will only track shuffled entrances");
+        UIWidgets::Spacer(0);
+
+        ImGui::TableNextColumn();
+
+        if (ImGui::BeginTable("entranceTrackerSubSettings", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp)) {
+
+            ImGui::TableNextColumn();
+
+            ImGui::Text("Sort By");
+            UIWidgets::EnhancementRadioButton("To", CVAR_TRACKER_ENTRANCE("SortBy"), 0);
+            UIWidgets::Tooltip("Sort entrances by the original source entrance");
+            UIWidgets::EnhancementRadioButton("From", CVAR_TRACKER_ENTRANCE("SortBy"), 1);
+            UIWidgets::Tooltip("Sort entrances by the overrided destination");
+
+            UIWidgets::Spacer(2.0f);
+
+            ImGui::Text("List Items");
+            UIWidgets::PaddedEnhancementCheckbox("Auto scroll", CVAR_TRACKER_ENTRANCE("AutoScroll"), true, false);
+            UIWidgets::Tooltip("Automatically scroll to the first aviable entrance in the current scene");
+            UIWidgets::PaddedEnhancementCheckbox("Highlight previous", CVAR_TRACKER_ENTRANCE("HighlightPrevious"), true, false);
+            UIWidgets::Tooltip("Highlight the previous entrance that Link came from");
+            UIWidgets::PaddedEnhancementCheckbox("Highlight available", CVAR_TRACKER_ENTRANCE("HighlightAvailable"), true, false);
+            UIWidgets::Tooltip("Highlight available entrances in the current scene");
+            UIWidgets::PaddedEnhancementCheckbox("Hide undiscovered", CVAR_TRACKER_ENTRANCE("CollapseUndiscovered"), true, false);
+            UIWidgets::Tooltip("Collapse undiscovered entrances towards the bottom of each group");
+            bool disableHideReverseEntrances = OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_DECOUPLED_ENTRANCES) == RO_GENERIC_ON;
+            static const char* disableHideReverseEntrancesText = "This option is disabled because \"Decouple Entrances\" is enabled.";
+            UIWidgets::PaddedEnhancementCheckbox("Hide reverse", CVAR_TRACKER_ENTRANCE("HideReverseEntrances"), true, false,
+                                          disableHideReverseEntrances, disableHideReverseEntrancesText, UIWidgets::CheckboxGraphics::Cross, true);
+            UIWidgets::Tooltip("Hide reverse entrance transitions when Decouple Entrances is off");
+            UIWidgets::Spacer(0);
+
+            ImGui::TableNextColumn();
+
+            ImGui::Text("Group By");
+            UIWidgets::EnhancementRadioButton("Area", CVAR_TRACKER_ENTRANCE("GroupBy"), 0);
+            UIWidgets::Tooltip("Group entrances by their area");
+            UIWidgets::EnhancementRadioButton("Type", CVAR_TRACKER_ENTRANCE("GroupBy"), 1);
+            UIWidgets::Tooltip("Group entrances by their entrance type");
+
+            UIWidgets::Spacer(2.0f);
+
+            ImGui::Text("Spoiler Reveal");
+            UIWidgets::PaddedEnhancementCheckbox("Show \"To\"", CVAR_TRACKER_ENTRANCE("ShowTo"), true, false);
+            UIWidgets::Tooltip("Reveal the \"To\" entrance for undiscovered entrances");
+            UIWidgets::PaddedEnhancementCheckbox("Show \"From\"", CVAR_TRACKER_ENTRANCE("ShowFrom"), true, false);
+            UIWidgets::Tooltip("Reveal the \"From\" entrance for undiscovered entrances");
+
+            ImGui::EndTable();
+        }
+
+        ImGui::TableNextColumn();
+
+        ImGui::SetNextItemOpen(false, ImGuiCond_Once);
+        if (ImGui::TreeNode("Legend")) {
+            ImGui::TextColored(ImColor(COLOR_ORANGE), "Last Entrance");
+            ImGui::TextColored(ImColor(COLOR_GREEN), "Available Entrances");
+            ImGui::TextColored(ImColor(COLOR_GRAY), "Undiscovered Entrances");
+            ImGui::TreePop();
+        }
+
+        UIWidgets::Spacer(0);
+
+        ImGui::EndTable();
+    }
+}
+
+void EntranceTrackerWindow::Draw() {
+    if (!IsVisible()) {
+        return;
+    }
+    DrawElement();
+    // Sync up the IsVisible flag if it was changed by ImGui
+    SyncVisibilityConsoleVariable();
 }
 
 void EntranceTrackerWindow::DrawElement() {
@@ -642,89 +728,6 @@ void EntranceTrackerWindow::DrawElement() {
     if (!ImGui::Begin("Entrance Tracker", &mIsVisible, ImGuiWindowFlags_NoFocusOnAppearing)) {
         ImGui::End();
         return;
-    }
-
-    // Begin tracker settings
-    ImGui::SetNextItemOpen(false, ImGuiCond_Once);
-    if (ImGui::TreeNode("Tracker Settings")) {
-        // Reduce indentation from the tree node for the table
-        ImGui::SetCursorPosX((ImGui::GetCursorPosX() / 2) + 4.0f);
-
-        if (ImGui::BeginTable("entranceTrackerSettings", 1, ImGuiTableFlags_BordersInnerH)) {
-
-            ImGui::TableNextColumn();
-
-            UIWidgets::Spacer(0);
-            ImGui::TextWrapped("The entrance tracker will only track shuffled entrances");
-            UIWidgets::Spacer(0);
-
-            ImGui::TableNextColumn();
-
-            if (ImGui::BeginTable("entranceTrackerSubSettings", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp)) {
-
-                ImGui::TableNextColumn();
-
-                ImGui::Text("Sort By");
-                UIWidgets::EnhancementRadioButton("To", "gEntranceTrackerSortBy", 0);
-                UIWidgets::Tooltip("Sort entrances by the original source entrance");
-                UIWidgets::EnhancementRadioButton("From", "gEntranceTrackerSortBy", 1);
-                UIWidgets::Tooltip("Sort entrances by the overrided destination");
-
-                UIWidgets::Spacer(2.0f);
-
-                ImGui::Text("List Items");
-                UIWidgets::PaddedEnhancementCheckbox("Auto scroll", "gEntranceTrackerAutoScroll", true, false);
-                UIWidgets::Tooltip("Automatically scroll to the first aviable entrance in the current scene");
-                UIWidgets::PaddedEnhancementCheckbox("Highlight previous", "gEntranceTrackerHighlightPrevious", true, false);
-                UIWidgets::Tooltip("Highlight the previous entrance that Link came from");
-                UIWidgets::PaddedEnhancementCheckbox("Highlight available", "gEntranceTrackerHighlightAvailable", true, false);
-                UIWidgets::Tooltip("Highlight available entrances in the current scene");
-                UIWidgets::PaddedEnhancementCheckbox("Hide undiscovered", "gEntranceTrackerCollapseUndiscovered", true, false);
-                UIWidgets::Tooltip("Collapse undiscovered entrances towards the bottom of each group");
-                bool disableHideReverseEntrances = OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_DECOUPLED_ENTRANCES) == RO_GENERIC_ON;
-                static const char* disableHideReverseEntrancesText = "This option is disabled because \"Decouple Entrances\" is enabled.";
-                UIWidgets::PaddedEnhancementCheckbox("Hide reverse", "gEntranceTrackerHideReverseEntrances", true, false,
-                                              disableHideReverseEntrances, disableHideReverseEntrancesText, UIWidgets::CheckboxGraphics::Cross, true);
-                UIWidgets::Tooltip("Hide reverse entrance transitions when Decouple Entrances is off");
-                UIWidgets::Spacer(0);
-
-                ImGui::TableNextColumn();
-
-                ImGui::Text("Group By");
-                UIWidgets::EnhancementRadioButton("Area", "gEntranceTrackerGroupBy", 0);
-                UIWidgets::Tooltip("Group entrances by their area");
-                UIWidgets::EnhancementRadioButton("Type", "gEntranceTrackerGroupBy", 1);
-                UIWidgets::Tooltip("Group entrances by their entrance type");
-
-                UIWidgets::Spacer(2.0f);
-
-                ImGui::Text("Spoiler Reveal");
-                UIWidgets::PaddedEnhancementCheckbox("Show \"To\"", "gEntranceTrackerShowTo", true, false);
-                UIWidgets::Tooltip("Reveal the \"To\" entrance for undiscovered entrances");
-                UIWidgets::PaddedEnhancementCheckbox("Show \"From\"", "gEntranceTrackerShowFrom", true, false);
-                UIWidgets::Tooltip("Reveal the \"From\" entrance for undiscovered entrances");
-
-                ImGui::EndTable();
-            }
-
-            ImGui::TableNextColumn();
-
-            ImGui::SetNextItemOpen(false, ImGuiCond_Once);
-            if (ImGui::TreeNode("Legend")) {
-                ImGui::TextColored(ImColor(COLOR_ORANGE), "Last Entrance");
-                ImGui::TextColored(ImColor(COLOR_GREEN), "Available Entrances");
-                ImGui::TextColored(ImColor(COLOR_GRAY), "Undiscovered Entrances");
-                ImGui::TreePop();
-            }
-
-            UIWidgets::Spacer(0);
-
-            ImGui::EndTable();
-        }
-
-        ImGui::TreePop();
-    } else {
-        UIWidgets::PaddedSeparator();
     }
 
     static ImGuiTextFilter locationSearch;
@@ -749,8 +752,8 @@ void EntranceTrackerWindow::DrawElement() {
         nextTreeState = 2;
     }
 
-    uint8_t destToggle = CVarGetInteger("gEntranceTrackerSortBy", 0);
-    uint8_t groupToggle = CVarGetInteger("gEntranceTrackerGroupBy", 0);
+    uint8_t destToggle = CVarGetInteger(CVAR_TRACKER_ENTRANCE("SortBy"), 0);
+    uint8_t groupToggle = CVarGetInteger(CVAR_TRACKER_ENTRANCE("GroupBy"), 0);
 
     // Combine destToggle and groupToggle to get a range of 0-3
     uint8_t groupType = destToggle + (groupToggle * 2);
@@ -801,7 +804,7 @@ void EntranceTrackerWindow::DrawElement() {
             // However, if entrances are decoupled, then all transitions need to be displayed, so we proceed with the filtering
             if ((original->type == ENTRANCE_TYPE_DUNGEON || original->type == ENTRANCE_TYPE_GROTTO || original->type == ENTRANCE_TYPE_INTERIOR) &&
                 (original->oneExit != 1 && OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_DECOUPLED_ENTRANCES) == RO_GENERIC_OFF) &&
-                CVarGetInteger("gEntranceTrackerHideReverseEntrances", 1) == 1) {
+                CVarGetInteger(CVAR_TRACKER_ENTRANCE("HideReverseEntrances"), 1) == 1) {
                     continue;
             }
 
@@ -812,8 +815,8 @@ void EntranceTrackerWindow::DrawElement() {
 
             bool isDiscovered = IsEntranceDiscovered(entrance.index);
 
-            bool showOriginal = (!destToggle ? CVarGetInteger("gEntranceTrackerShowTo", 0) : CVarGetInteger("gEntranceTrackerShowFrom", 0)) || isDiscovered;
-            bool showOverride = (!destToggle ? CVarGetInteger("gEntranceTrackerShowFrom", 0) : CVarGetInteger("gEntranceTrackerShowTo", 0)) || isDiscovered;
+            bool showOriginal = (!destToggle ? CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowTo"), 0) : CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowFrom"), 0)) || isDiscovered;
+            bool showOverride = (!destToggle ? CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowFrom"), 0) : CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowTo"), 0)) || isDiscovered;
 
             const char* origSrcAreaName = spoilerEntranceGroupNames[original->srcGroup].c_str();
             const char* origTypeName = groupTypeNames[original->type].c_str();
@@ -826,7 +829,7 @@ void EntranceTrackerWindow::DrawElement() {
             const char* rplcDstName = showOverride ? override->destination.c_str() : "";
 
             // Filter for entrances by group name, type, source/destination names, and meta tags
-            if ((!locationSearch.IsActive() && (showOriginal || showOverride || !CVarGetInteger("gEntranceTrackerCollapseUndiscovered", 0))) ||
+            if ((!locationSearch.IsActive() && (showOriginal || showOverride || !CVarGetInteger(CVAR_TRACKER_ENTRANCE("CollapseUndiscovered"), 0))) ||
                 ((showOriginal && (locationSearch.PassFilter(origSrcName) ||
                 locationSearch.PassFilter(origDstName) || locationSearch.PassFilter(origSrcAreaName) ||
                 locationSearch.PassFilter(origTypeName) || locationSearch.PassFilter(original->metaTag.c_str()))) ||
@@ -864,8 +867,8 @@ void EntranceTrackerWindow::DrawElement() {
 
                     bool isDiscovered = IsEntranceDiscovered(entrance.index);
 
-                    bool showOriginal = (!destToggle ? CVarGetInteger("gEntranceTrackerShowTo", 0) : CVarGetInteger("gEntranceTrackerShowFrom", 0)) || isDiscovered;
-                    bool showOverride = (!destToggle ? CVarGetInteger("gEntranceTrackerShowFrom", 0) : CVarGetInteger("gEntranceTrackerShowTo", 0)) || isDiscovered;
+                    bool showOriginal = (!destToggle ? CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowTo"), 0) : CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowFrom"), 0)) || isDiscovered;
+                    bool showOverride = (!destToggle ? CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowFrom"), 0) : CVarGetInteger(CVAR_TRACKER_ENTRANCE("ShowTo"), 0)) || isDiscovered;
 
                     const char* unknown = "???";
 
@@ -879,16 +882,16 @@ void EntranceTrackerWindow::DrawElement() {
                     // Handle highlighting and auto scroll
                     if ((original->index == lastEntranceIndex ||
                         (override->reverseIndex == lastEntranceIndex && OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_DECOUPLED_ENTRANCES) == RO_GENERIC_OFF)) &&
-                            CVarGetInteger("gEntranceTrackerHighlightPrevious", 0)) {
+                            CVarGetInteger(CVAR_TRACKER_ENTRANCE("HighlightPrevious"), 0)) {
                                  color = COLOR_ORANGE;
                     } else if (LinkIsInArea(original) != -1) {
-                        if (CVarGetInteger("gEntranceTrackerHighlightAvailable", 0)) {
+                        if (CVarGetInteger(CVAR_TRACKER_ENTRANCE("HighlightAvailable"), 0)) {
                             color = COLOR_GREEN;
                         }
 
                         if (doAreaScroll) {
                             doAreaScroll = false;
-                            if (CVarGetInteger("gEntranceTrackerAutoScroll", 0)) {
+                            if (CVarGetInteger(CVAR_TRACKER_ENTRANCE("AutoScroll"), 0)) {
                                 ImGui::SetScrollHereY(0.0f);
                             }
                         }

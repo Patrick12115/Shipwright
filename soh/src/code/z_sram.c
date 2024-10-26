@@ -2,6 +2,8 @@
 #include "vt.h"
 
 #include <string.h>
+#include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/randomizer/savefile.h"
 
@@ -74,72 +76,79 @@ void Sram_OpenSave() {
 
     Save_LoadFile();
 
-    if (!CVarGetInteger("gRememberSaveLocation", 0) || gSaveContext.savedSceneNum == SCENE_FAIRYS_FOUNTAIN ||
-        gSaveContext.savedSceneNum == SCENE_GROTTOS) {
-        switch (gSaveContext.savedSceneNum) {
-            case SCENE_DEKU_TREE:
-            case SCENE_DODONGOS_CAVERN:
-            case SCENE_JABU_JABU:
-            case SCENE_FOREST_TEMPLE:
-            case SCENE_FIRE_TEMPLE:
-            case SCENE_WATER_TEMPLE:
-            case SCENE_SPIRIT_TEMPLE:
-            case SCENE_SHADOW_TEMPLE:
-            case SCENE_BOTTOM_OF_THE_WELL:
-            case SCENE_ICE_CAVERN:
-            case SCENE_GANONS_TOWER:
-            case SCENE_GERUDO_TRAINING_GROUND:
-            case SCENE_THIEVES_HIDEOUT:
-            case SCENE_INSIDE_GANONS_CASTLE:
-                gSaveContext.entranceIndex = sDungeonEntrances[gSaveContext.savedSceneNum];
-                break;
-            case SCENE_DEKU_TREE_BOSS:
-                gSaveContext.entranceIndex = ENTR_DEKU_TREE_0;
-                break;
-            case SCENE_DODONGOS_CAVERN_BOSS:
-                gSaveContext.entranceIndex = ENTR_DODONGOS_CAVERN_0;
-                break;
-            case SCENE_JABU_JABU_BOSS:
-                gSaveContext.entranceIndex = ENTR_JABU_JABU_0;
-                break;
-            case SCENE_FOREST_TEMPLE_BOSS:
-                gSaveContext.entranceIndex = ENTR_FOREST_TEMPLE_0;
-                break;
-            case SCENE_FIRE_TEMPLE_BOSS:
-                gSaveContext.entranceIndex = ENTR_FIRE_TEMPLE_0;
-                break;
-            case SCENE_WATER_TEMPLE_BOSS:
-                gSaveContext.entranceIndex = ENTR_WATER_TEMPLE_0;
-                break;
-            case SCENE_SPIRIT_TEMPLE_BOSS:
-                gSaveContext.entranceIndex = ENTR_SPIRIT_TEMPLE_0;
-                break;
-            case SCENE_SHADOW_TEMPLE_BOSS:
-                gSaveContext.entranceIndex = ENTR_SHADOW_TEMPLE_0;
-                break;
-            case SCENE_GANONS_TOWER_COLLAPSE_INTERIOR:
-            case SCENE_INSIDE_GANONS_CASTLE_COLLAPSE:
-            case SCENE_GANONDORF_BOSS:
-            case SCENE_GANONS_TOWER_COLLAPSE_EXTERIOR:
-            case SCENE_GANON_BOSS:
-                gSaveContext.entranceIndex = ENTR_GANONS_TOWER_0;
-                break;
+    switch (gSaveContext.savedSceneNum) {
+        case SCENE_DEKU_TREE:
+        case SCENE_DODONGOS_CAVERN:
+        case SCENE_JABU_JABU:
+        case SCENE_FOREST_TEMPLE:
+        case SCENE_FIRE_TEMPLE:
+        case SCENE_WATER_TEMPLE:
+        case SCENE_SPIRIT_TEMPLE:
+        case SCENE_SHADOW_TEMPLE:
+        case SCENE_BOTTOM_OF_THE_WELL:
+        case SCENE_ICE_CAVERN:
+        case SCENE_GANONS_TOWER:
+        case SCENE_GERUDO_TRAINING_GROUND:
+        case SCENE_THIEVES_HIDEOUT:
+        case SCENE_INSIDE_GANONS_CASTLE:
+            gSaveContext.entranceIndex = sDungeonEntrances[gSaveContext.savedSceneNum];
+            break;
+        case SCENE_DEKU_TREE_BOSS:
+            gSaveContext.entranceIndex = ENTR_DEKU_TREE_0;
+            break;
+        case SCENE_DODONGOS_CAVERN_BOSS:
+            gSaveContext.entranceIndex = ENTR_DODONGOS_CAVERN_0;
+            break;
+        case SCENE_JABU_JABU_BOSS:
+            gSaveContext.entranceIndex = ENTR_JABU_JABU_0;
+            break;
+        case SCENE_FOREST_TEMPLE_BOSS:
+            gSaveContext.entranceIndex = ENTR_FOREST_TEMPLE_0;
+            break;
+        case SCENE_FIRE_TEMPLE_BOSS:
+            gSaveContext.entranceIndex = ENTR_FIRE_TEMPLE_0;
+            break;
+        case SCENE_WATER_TEMPLE_BOSS:
+            gSaveContext.entranceIndex = ENTR_WATER_TEMPLE_0;
+            break;
+        case SCENE_SPIRIT_TEMPLE_BOSS:
+            gSaveContext.entranceIndex = ENTR_SPIRIT_TEMPLE_0;
+            break;
+        case SCENE_SHADOW_TEMPLE_BOSS:
+            gSaveContext.entranceIndex = ENTR_SHADOW_TEMPLE_0;
+            break;
+        case SCENE_GANONS_TOWER_COLLAPSE_INTERIOR:
+        case SCENE_INSIDE_GANONS_CASTLE_COLLAPSE:
+        case SCENE_GANONDORF_BOSS:
+        case SCENE_GANONS_TOWER_COLLAPSE_EXTERIOR:
+        case SCENE_GANON_BOSS:
+            gSaveContext.entranceIndex = ENTR_GANONS_TOWER_0;
+            break;
 
-            default:
-                if (gSaveContext.savedSceneNum != SCENE_LINKS_HOUSE) {
-                    gSaveContext.entranceIndex = (LINK_AGE_IN_YEARS == YEARS_CHILD) ? ENTR_LINKS_HOUSE_0 : ENTR_TEMPLE_OF_TIME_7;
-                } else {
-                    gSaveContext.entranceIndex = ENTR_LINKS_HOUSE_0;
-                }
+        default:
+            // Use the saved entrance value with remember save location, except when in grottos/fairy fountains
+            if (CVarGetInteger(CVAR_ENHANCEMENT("RememberSaveLocation"), 0) && gSaveContext.savedSceneNum != SCENE_FAIRYS_FOUNTAIN &&
+                gSaveContext.savedSceneNum != SCENE_GROTTOS) {
                 break;
-        }
+            }
+
+            if (gSaveContext.savedSceneNum != SCENE_LINKS_HOUSE) {
+                gSaveContext.entranceIndex = (LINK_AGE_IN_YEARS == YEARS_CHILD) ? ENTR_LINKS_HOUSE_0 : ENTR_TEMPLE_OF_TIME_7;
+            } else {
+                gSaveContext.entranceIndex = ENTR_LINKS_HOUSE_0;
+            }
+            break;
+    }
+
+    if (!CVarGetInteger(CVAR_ENHANCEMENT("PersistentMasks"), 0)) {
+        gSaveContext.maskMemory = PLAYER_MASK_NONE;
     }
 
     osSyncPrintf("scene_no = %d\n", gSaveContext.entranceIndex);
     osSyncPrintf(VT_RST);
 
     if (gSaveContext.health < 0x30) {
-        gSaveContext.health = CVarGetInteger("gFullHealthSpawn", 0) ? gSaveContext.healthCapacity : 0x30;
+        gSaveContext.health = CVarGetInteger(CVAR_ENHANCEMENT("FullHealthSpawn"), 0) ? gSaveContext.healthCapacity : 0x30;
     }
 
     if (gSaveContext.scarecrowLongSongSet) {
@@ -195,7 +204,7 @@ void Sram_OpenSave() {
         }
     }
 
-    if (!(IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_ADULT_TRADE))) {
+    if (GameInteractor_Should(VB_REVERT_SPOILING_ITEMS, true)) {
         for (i = 0; i < ARRAY_COUNT(gSpoilingItems); i++) {
             if (INV_CONTENT(ITEM_TRADE_ADULT) == gSpoilingItems[i]) {
                 INV_CONTENT(gSpoilingItemReverts[i]) = gSpoilingItemReverts[i];
@@ -218,7 +227,7 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx) {
     u16* ptr;
     u16 checksum;
 
-    if (fileChooseCtx->buttonIndex != 0 || !CVarGetInteger("gDebugEnabled", 0)) {
+    if (fileChooseCtx->buttonIndex != 0 || !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) {
         Sram_InitNewSave();
     } else {
         Sram_InitDebugSave();
@@ -229,7 +238,7 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx) {
     gSaveContext.dayTime = 0x6AAB;
     gSaveContext.cutsceneIndex = 0xFFF1;
 
-    if ((fileChooseCtx->buttonIndex == 0 && CVarGetInteger("gDebugEnabled", 0)) || CVarGetInteger("gNaviSkipCutscene", 0)) {
+    if ((fileChooseCtx->buttonIndex == 0 && CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0))) {
         gSaveContext.cutsceneIndex = 0;
     }
 
@@ -241,13 +250,12 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx) {
 
     u8 currentQuest = fileChooseCtx->questType[fileChooseCtx->buttonIndex];
 
-    if (currentQuest == QUEST_RANDOMIZER &&
-        strnlen(CVarGetString("gSpoilerLog", ""), 1) != 0) {
+    if (currentQuest == QUEST_RANDOMIZER && (Randomizer_IsSeedGenerated() || Randomizer_IsPlandoLoaded())) {
         gSaveContext.questId = QUEST_RANDOMIZER;
 
         Randomizer_InitSaveFile();
-    } else if (currentQuest == QUEST_MASTER) {
-        gSaveContext.questId = QUEST_MASTER;
+    } else {
+        gSaveContext.questId = currentQuest;
     }
 
     Save_SaveFile();

@@ -631,15 +631,15 @@ void func_80A0329C(EnElf* this, PlayState* play) {
 
         if ((heightDiff > 0.0f) && (heightDiff < 60.0f)) {
             if (!func_80A01F90(&this->actor.world.pos, &refActor->actor.world.pos, 10.0f)) {
-                if (CVarGetInteger("gFairyEffect", 0) && !(this->fairyFlags & FAIRY_FLAG_BIG))
+                if (CVarGetInteger(CVAR_ENHANCEMENT("FairyEffect"), 0) && !(this->fairyFlags & FAIRY_FLAG_BIG))
                 {
-                    if (CVarGetInteger("gFairyPercentRestore", 0))
+                    if (CVarGetInteger(CVAR_ENHANCEMENT("FairyPercentRestore"), 0))
                     {
-                        Health_ChangeBy(play, (gSaveContext.healthCapacity * CVarGetInteger("gFairyHealth", 100) / 100 + 15) / 16 * 16);
+                        Health_ChangeBy(play, (gSaveContext.healthCapacity * CVarGetInteger(CVAR_ENHANCEMENT("FairyHealth"), 100) / 100 + 15) / 16 * 16);
                     }
                     else
                     {
-                        Health_ChangeBy(play, CVarGetInteger("gFairyHealth", 8) * 16);
+                        Health_ChangeBy(play, CVarGetInteger(CVAR_ENHANCEMENT("FairyHealth"), 8) * 16);
                     }
                 }
                 else
@@ -677,7 +677,7 @@ void func_80A0329C(EnElf* this, PlayState* play) {
 
         if (!(this->fairyFlags & FAIRY_FLAG_BIG)) {
             // GI_MAX in this case allows the player to catch the actor in a bottle
-            func_8002F434(&this->actor, play, GI_MAX, 80.0f, 60.0f);
+            Actor_OfferGetItem(&this->actor, play, GI_MAX, 80.0f, 60.0f);
         }
     }
 }
@@ -1047,11 +1047,11 @@ void func_80A04414(EnElf* this, PlayState* play) {
     }
 
     if (this->fairyFlags & 1) {
-        if ((arrowPointedActor == NULL) || (player->unk_664 == NULL)) {
+        if ((arrowPointedActor == NULL) || (player->focusActor == NULL)) {
             this->fairyFlags ^= 1;
         }
     } else {
-        if ((arrowPointedActor != NULL) && (player->unk_664 != NULL)) {
+        if ((arrowPointedActor != NULL) && (player->focusActor != NULL)) {
             if (arrowPointedActor->category == ACTORCAT_NPC) {
                 targetSound = NA_SE_VO_NAVY_HELLO;
             } else {
@@ -1103,7 +1103,7 @@ void func_80A0461C(EnElf* this, PlayState* play) {
         } else if (arrowPointedActor == NULL || arrowPointedActor->category == ACTORCAT_NPC) {
             if (arrowPointedActor != NULL) {
                 this->unk_2C0 = 100;
-                player->stateFlags2 |= PLAYER_STATE2_NAVI_OUT;
+                player->stateFlags2 |= PLAYER_STATE2_NAVI_ACTIVE;
                 temp = 0;
             } else {
                 switch (this->unk_2A8) {
@@ -1124,7 +1124,7 @@ void func_80A0461C(EnElf* this, PlayState* play) {
                                 this->unk_2AE--;
                                 temp = 7;
                             } else {
-                                player->stateFlags2 |= PLAYER_STATE2_NAVI_OUT;
+                                player->stateFlags2 |= PLAYER_STATE2_NAVI_ACTIVE;
                                 temp = 0;
                             }
                         } else {
@@ -1154,7 +1154,7 @@ void func_80A0461C(EnElf* this, PlayState* play) {
 
         switch (temp) {
             case 0:
-                if (!(player->stateFlags2 & PLAYER_STATE2_NAVI_OUT)) {
+                if (!(player->stateFlags2 & PLAYER_STATE2_NAVI_ACTIVE)) {
                     temp = 7;
                     if (this->unk_2C7 == 0) {
                         Audio_PlayActorSound2(&this->actor, NA_SE_EV_NAVY_VANISH);
@@ -1162,7 +1162,7 @@ void func_80A0461C(EnElf* this, PlayState* play) {
                 }
                 break;
             case 8:
-                if (player->stateFlags2 & PLAYER_STATE2_NAVI_OUT) {
+                if (player->stateFlags2 & PLAYER_STATE2_NAVI_ACTIVE) {
                     func_80A0299C(this, 0x32);
                     this->unk_2C0 = 42;
                     temp = 11;
@@ -1172,10 +1172,10 @@ void func_80A0461C(EnElf* this, PlayState* play) {
                 }
                 break;
             case 7:
-                player->stateFlags2 &= ~PLAYER_STATE2_NAVI_OUT;
+                player->stateFlags2 &= ~PLAYER_STATE2_NAVI_ACTIVE;
                 break;
             default:
-                player->stateFlags2 |= PLAYER_STATE2_NAVI_OUT;
+                player->stateFlags2 |= PLAYER_STATE2_NAVI_ACTIVE;
                 break;
         }
     }
@@ -1232,7 +1232,7 @@ void func_80A04DE4(EnElf* this, PlayState* play) {
     if (this->fairyFlags & 0x10) {
         naviRefPos = play->actorCtx.targetCtx.naviRefPos;
 
-        if ((player->unk_664 == NULL) || (&player->actor == player->unk_664) || (&this->actor == player->unk_664)) {
+        if ((player->focusActor == NULL) || (&player->actor == player->focusActor) || (&this->actor == player->focusActor)) {
             naviRefPos.x = player->bodyPartsPos[7].x + (Math_SinS(player->actor.shape.rot.y) * 20.0f);
             naviRefPos.y = player->bodyPartsPos[7].y + 5.0f;
             naviRefPos.z = player->bodyPartsPos[7].z + (Math_CosS(player->actor.shape.rot.y) * 20.0f);
@@ -1384,7 +1384,7 @@ void func_80A053F0(Actor* thisx, PlayState* play) {
     EnElf* this = (EnElf*)thisx;
 
     if (player->naviTextId == 0) {
-        if (player->unk_664 == NULL) {
+        if (player->focusActor == NULL) {
             if (((gSaveContext.naviTimer >= 600) && (gSaveContext.naviTimer <= 3000)) || (nREG(89) != 0)) {
                 player->naviTextId = ElfMessage_GetCUpText(play);
 
@@ -1486,7 +1486,7 @@ s32 EnElf_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* p
         if (this->fairyFlags & FAIRY_FLAG_BIG) {
             scale *= 2.0f;
         }
-        scale *= CVarGetFloat("gCosmetics.Fairies_Size", 1.0f);
+        scale *= CVarGetFloat(CVAR_COSMETIC("Fairies.Size"), 1.0f);
 
         scale *= (this->actor.scale.x * 124.99999f);
         Matrix_MultVec3f(&zeroVec, &mtxMult);
@@ -1540,7 +1540,7 @@ void EnElf_Draw(Actor* thisx, PlayState* play) {
             gSPEndDisplayList(dListHead++);
             gDPSetEnvColor(POLY_XLU_DISP++, (u8)this->outerColor.r, (u8)this->outerColor.g, (u8)this->outerColor.b,
                            (u8)(envAlpha * alphaScale));
-            POLY_XLU_DISP = SkelAnime_Draw(play, this->skelAnime.skeleton, this->skelAnime.jointTable,
+            POLY_XLU_DISP = SkelAnime_DrawSkeleton2(play, &this->skelAnime,
                                            EnElf_OverrideLimbDraw, NULL, this, POLY_XLU_DISP);
 
             CLOSE_DISPS(play->state.gfxCtx);
@@ -1551,7 +1551,7 @@ void EnElf_Draw(Actor* thisx, PlayState* play) {
 void EnElf_GetCutsceneNextPos(Vec3f* vec, PlayState* play, s32 action) {
     Vec3f startPos;
     Vec3f endPos;
-    CsCmdActorAction* npcAction = play->csCtx.npcActions[action];
+    CsCmdActorCue* npcAction = play->csCtx.npcActions[action];
     f32 lerp;
 
     startPos.x = npcAction->startPos.x;

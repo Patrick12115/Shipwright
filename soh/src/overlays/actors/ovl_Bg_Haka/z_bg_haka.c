@@ -61,7 +61,7 @@ void func_8087B758(BgHaka* this, Player* player) {
 
     func_8002DBD0(&this->dyna.actor, &sp1C, &player->actor.world.pos);
     if (fabsf(sp1C.x) < 34.6f && sp1C.z > -112.8f && sp1C.z < -36.0f) {
-        player->stateFlags2 |= PLAYER_STATE2_SPAWN_DUST;
+        player->stateFlags2 |= PLAYER_STATE2_FORCE_SAND_FLOOR_SOUND;
     }
 }
 
@@ -69,7 +69,7 @@ void func_8087B7E8(BgHaka* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
     if (this->dyna.unk_150 != 0.0f) {
-        if (play->sceneNum == SCENE_GRAVEYARD && !LINK_IS_ADULT && IS_DAY && !CVarGetInteger("gDayGravePull", 0)) {
+        if (play->sceneNum == SCENE_GRAVEYARD && !LINK_IS_ADULT && IS_DAY && !CVarGetInteger(CVAR_ENHANCEMENT("DayGravePull"), 0)) {
             this->dyna.unk_150 = 0.0f;
             player->stateFlags2 &= ~PLAYER_STATE2_MOVING_DYNAPOLY;
             if (!Play_InCsMode(play)) {

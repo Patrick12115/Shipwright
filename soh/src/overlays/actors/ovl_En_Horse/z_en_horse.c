@@ -13,7 +13,7 @@
 
 #define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
-typedef void (*EnHorseCsFunc)(EnHorse*, PlayState*, CsCmdActorAction*);
+typedef void (*EnHorseCsFunc)(EnHorse*, PlayState*, CsCmdActorCue*);
 typedef void (*EnHorseActionFunc)(EnHorse*, PlayState*);
 
 void EnHorse_Init(Actor* thisx, PlayState* play);
@@ -388,11 +388,11 @@ static s32 sIdleAnimIds[] = { 1, 3, 0, 3, 1, 0 };
 
 static s16 sIngoAnimations[] = { 7, 6, 2, 2, 1, 1, 0, 0, 0, 0 };
 
-void EnHorse_CsMoveInit(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsJumpInit(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsRearingInit(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_WarpMoveInit(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsWarpRearingInit(EnHorse* this, PlayState* play, CsCmdActorAction* action);
+void EnHorse_CsMoveInit(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsJumpInit(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsRearingInit(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_WarpMoveInit(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsWarpRearingInit(EnHorse* this, PlayState* play, CsCmdActorCue* action);
 
 static EnHorseCsFunc sCutsceneInitFuncs[] = {
     NULL,
@@ -403,11 +403,11 @@ static EnHorseCsFunc sCutsceneInitFuncs[] = {
     EnHorse_CsWarpRearingInit,
 };
 
-void EnHorse_CsMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsJump(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsRearing(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsWarpMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorAction* action);
-void EnHorse_CsWarpRearing(EnHorse* this, PlayState* play, CsCmdActorAction* action);
+void EnHorse_CsMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsJump(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsRearing(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsWarpMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorCue* action);
+void EnHorse_CsWarpRearing(EnHorse* this, PlayState* play, CsCmdActorCue* action);
 
 static EnHorseCsFunc sCutsceneActionFuncs[] = {
     NULL, EnHorse_CsMoveToPoint, EnHorse_CsJump, EnHorse_CsRearing, EnHorse_CsWarpMoveToPoint, EnHorse_CsWarpRearing,
@@ -2104,7 +2104,7 @@ void EnHorse_UpdateIngoRace(EnHorse* this, PlayState* play) {
                              &((EnIn*)this->rider)->animationIdx, &((EnIn*)this->rider)->unk_1E0);
 }
 
-void EnHorse_CsMoveInit(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsMoveInit(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     this->animationIdx = ENHORSE_ANIM_GALLOP;
     this->cutsceneAction = 1;
     Animation_PlayOnceSetSpeed(&this->skin.skelAnime, sAnimationHeaders[this->type][this->animationIdx],
@@ -2113,7 +2113,7 @@ void EnHorse_CsMoveInit(EnHorse* this, PlayState* play, CsCmdActorAction* action
 
 void EnHorse_CsPlayHighJumpAnim(EnHorse* this, PlayState* play);
 
-void EnHorse_CsMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     Vec3f endPos;
     f32 speed = 8.0f;
 
@@ -2165,13 +2165,13 @@ void EnHorse_CsPlayHighJumpAnim(EnHorse* this, PlayState* play) {
     func_800AA000(0.0f, 170, 10, 10);
 }
 
-void EnHorse_CsJumpInit(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsJumpInit(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     EnHorse_CsSetAnimHighJump(this, play);
     this->cutsceneAction = 2;
     this->cutsceneFlags &= ~1;
 }
 
-void EnHorse_CsJump(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsJump(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     f32 temp_f2;
 
     if (this->cutsceneFlags & 1) {
@@ -2223,7 +2223,7 @@ void EnHorse_CsJump(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
     }
 }
 
-void EnHorse_CsRearingInit(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsRearingInit(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     this->animationIdx = ENHORSE_ANIM_REARING;
     this->cutsceneAction = 3;
     this->cutsceneFlags &= ~4;
@@ -2236,7 +2236,7 @@ void EnHorse_CsRearingInit(EnHorse* this, PlayState* play, CsCmdActorAction* act
                      Animation_GetLastFrame(sAnimationHeaders[this->type][this->animationIdx]), ANIMMODE_ONCE, -3.0f);
 }
 
-void EnHorse_CsRearing(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsRearing(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     this->actor.speedXZ = 0.0f;
     if (this->curFrame > 25.0f) {
         if (!(this->stateFlags & ENHORSE_LAND2_SOUND)) {
@@ -2259,7 +2259,7 @@ void EnHorse_CsRearing(EnHorse* this, PlayState* play, CsCmdActorAction* action)
     }
 }
 
-void EnHorse_WarpMoveInit(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_WarpMoveInit(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     this->actor.world.pos.x = action->startPos.x;
     this->actor.world.pos.y = action->startPos.y;
     this->actor.world.pos.z = action->startPos.z;
@@ -2272,7 +2272,7 @@ void EnHorse_WarpMoveInit(EnHorse* this, PlayState* play, CsCmdActorAction* acti
                                this->actor.speedXZ * 0.3f);
 }
 
-void EnHorse_CsWarpMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsWarpMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     Vec3f endPos;
     f32 speed = 8.0f;
 
@@ -2296,7 +2296,7 @@ void EnHorse_CsWarpMoveToPoint(EnHorse* this, PlayState* play, CsCmdActorAction*
     }
 }
 
-void EnHorse_CsWarpRearingInit(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsWarpRearingInit(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     this->actor.world.pos.x = action->startPos.x;
     this->actor.world.pos.y = action->startPos.y;
     this->actor.world.pos.z = action->startPos.z;
@@ -2315,7 +2315,7 @@ void EnHorse_CsWarpRearingInit(EnHorse* this, PlayState* play, CsCmdActorAction*
                      Animation_GetLastFrame(sAnimationHeaders[this->type][this->animationIdx]), ANIMMODE_ONCE, -3.0f);
 }
 
-void EnHorse_CsWarpRearing(EnHorse* this, PlayState* play, CsCmdActorAction* action) {
+void EnHorse_CsWarpRearing(EnHorse* this, PlayState* play, CsCmdActorCue* action) {
     this->actor.speedXZ = 0.0f;
     if (this->curFrame > 25.0f) {
         if (!(this->stateFlags & ENHORSE_LAND2_SOUND)) {
@@ -2362,7 +2362,7 @@ s32 EnHorse_GetCutsceneFunctionIndex(s32 csAction) {
 
 void EnHorse_CutsceneUpdate(EnHorse* this, PlayState* play) {
     s32 csFunctionIdx;
-    CsCmdActorAction* linkCsAction = play->csCtx.linkAction;
+    CsCmdActorCue* linkCsAction = play->csCtx.linkAction;
 
     if (play->csCtx.state == 3) {
         this->playerControlled = 1;
@@ -3042,7 +3042,7 @@ void EnHorse_StickDirection(Vec2f* curStick, f32* stickMag, s16* angle) {
 
 void EnHorse_UpdateStick(EnHorse* this, PlayState* play) {
     this->lastStick = this->curStick;
-    this->curStick.x = play->state.input[0].rel.stick_x * (CVarGetInteger("gMirroredWorld", 0) ? -1 : 1);
+    this->curStick.x = play->state.input[0].rel.stick_x * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1);
     this->curStick.y = play->state.input[0].rel.stick_y;
 }
 
@@ -3312,7 +3312,7 @@ void EnHorse_CheckBoost(EnHorse* thisx, PlayState* play2) {
                     this->stateFlags |= ENHORSE_BOOST;
                     this->stateFlags |= ENHORSE_FIRST_BOOST_REGEN;
                     this->stateFlags |= ENHORSE_FLAG_8;
-                    if (!CVarGetInteger("gInfiniteEpona", 0)) { this->numBoosts--; }
+                    if (!CVarGetInteger(CVAR_CHEAT("InfiniteEponaBoost"), 0)) { this->numBoosts--; }
                     this->boostTimer = 0;
                     if (this->numBoosts == 0) {
                         this->boostRegenTime = 140;
