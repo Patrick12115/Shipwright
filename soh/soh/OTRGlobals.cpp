@@ -1445,9 +1445,11 @@ extern "C" void Graph_ProcessGfxCommands(Gfx* commands) {
 
     bool curAltAssets = CVarGetInteger(CVAR_ENHANCEMENT("AltAssets"), 0);
     if (prevAltAssets != curAltAssets) {
+        UpdatePatchCustomEquipmentDlists();
         prevAltAssets = curAltAssets;
         Ship::Context::GetInstance()->GetResourceManager()->SetAltAssetsEnabled(curAltAssets);
         gfx_texture_cache_clear();
+        UpdatePatchCustomEquipmentDlists();
         SOH::SkeletonPatcher::UpdateSkeletons();
         GameInteractor::Instance->ExecuteHooks<GameInteractor::OnAssetAltChange>();
     }
@@ -1825,7 +1827,7 @@ extern "C" void ResourceMgr_PatchGfxByName(const char* path, const char* patchNa
 
 extern "C" void ResourceMgr_PatchCustomGfxByName(const char* path, const char* patchName, int index, Gfx instruction) {
     auto res = std::static_pointer_cast<LUS::DisplayList>(
-        LUS::Context::GetInstance()->GetResourceManager()->LoadResource(path));
+        Ship ::Context::GetInstance()->GetResourceManager()->LoadResource(path));
 
     Gfx* gfx = (Gfx*)&res->Instructions[index];
 

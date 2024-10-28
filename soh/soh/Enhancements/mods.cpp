@@ -771,27 +771,6 @@ void UpdatePatchHand() {
         ResourceMgr_UnpatchGfxByName(gLinkChildLeftFistAndBoomerangNearDL, "adultBoomerang");
         ResourceMgr_UnpatchGfxByName(gLinkChildRightFistAndDekuShieldNearDL, "adultDekuShield");
     }
-    if ((CVarGetInteger("gEnhancements.EquimentAlwaysVisible", 0)) && LINK_IS_ADULT) {
-        ResourceMgr_PatchCustomGfxByName(gLinkChildLeftFistNearDL, "customAdultHand1", 0, gsSPDisplayListOTRFilePath(gLinkAdultLeftHandClosedNearDL));
-        ResourceMgr_PatchCustomGfxByName(gLinkChildLeftFistNearDL, "customAdultHand2", 1, gsSPEndDisplayList());
-        ResourceMgr_PatchCustomGfxByName(gLinkChildRightHandClosedNearDL, "customAdultHand3", 0, gsSPDisplayListOTRFilePath(gLinkAdultRightHandClosedNearDL));
-        ResourceMgr_PatchCustomGfxByName(gLinkChildRightHandClosedNearDL, "customAdultHand4", 1, gsSPEndDisplayList());
-    } else {
-        ResourceMgr_UnpatchGfxByName(gLinkChildLeftFistNearDL, "customAdultHand1");
-        ResourceMgr_UnpatchGfxByName(gLinkChildLeftFistNearDL, "customAdultHand2");
-        ResourceMgr_UnpatchGfxByName(gLinkChildRightHandClosedNearDL, "customAdultHand3");
-        ResourceMgr_UnpatchGfxByName(gLinkChildRightHandClosedNearDL, "customAdultHand4");
-    }
-    if ((CVarGetInteger("gEnhancements.EquimentAlwaysVisible", 0)) && LINK_IS_CHILD) {
-        ResourceMgr_PatchCustomGfxByName(gLinkAdultLeftHandClosedNearDL, "customChildHand1", 0, gsSPDisplayListOTRFilePath(gLinkChildLeftFistNearDL));
-        ResourceMgr_PatchCustomGfxByName(gLinkAdultLeftHandClosedNearDL, "customChildHand2", 1, gsSPEndDisplayList());
-        ResourceMgr_PatchCustomGfxByName(gLinkAdultRightHandClosedNearDL, "customChildHand3", 0, gsSPDisplayListOTRFilePath(gLinkChildRightHandClosedNearDL));
-        ResourceMgr_PatchCustomGfxByName(gLinkAdultRightHandClosedNearDL, "customChildHand4", 1, gsSPEndDisplayList());
-    } else {
-        ResourceMgr_UnpatchGfxByName(gLinkAdultLeftHandClosedNearDL, "customChildHand1");
-        ResourceMgr_UnpatchGfxByName(gLinkAdultLeftHandClosedNearDL, "customChildHand2");
-        ResourceMgr_UnpatchGfxByName(gLinkAdultRightHandClosedNearDL, "customChildHand3");
-        ResourceMgr_UnpatchGfxByName(gLinkAdultRightHandClosedNearDL, "customChildHand4");
     if (CVarGetInteger("gEnhancements.FixHammerHand", 0) && LINK_IS_ADULT) {
         ResourceMgr_PatchGfxByName(gLinkAdultLeftHandHoldingHammerNearDL, "hammerHand1", 92, gsSPDisplayListOTRFilePath(gLinkAdultLeftHandClosedNearDL));
         ResourceMgr_PatchGfxByName(gLinkAdultLeftHandHoldingHammerNearDL, "hammerHand2", 93, gsSPEndDisplayList());
@@ -802,39 +781,39 @@ void UpdatePatchHand() {
 }
 
 void RegisterPatchHandHandler() {
-    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneInit>([](int32_t sceneNum) { 
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneSpawnActors>([]() { 
         UpdatePatchHand(); 
     });
 }
 
-void PatchOrUnpatchWithoutGfx(const char* resource, const char* dlist1, const char* dlist2, const char* dlist3) {
-    if (resource == NULL || dlist1 == NULL || dlist2 == NULL) {
-        return;
-    }
-
-    if (CVarGetInteger("gAltAssets", 0)) {
-        ResourceMgr_PatchCustomGfxByName(resource, dlist1, 0, gsSPEndDisplayList());
-        if (dlist3 == NULL) {
-            ResourceMgr_PatchCustomGfxByName(resource, dlist2, 1, gsSPEndDisplayList());
-        } else {
-            ResourceMgr_PatchCustomGfxByName(resource, dlist2, 1, gsSPEndDisplayList());
-            ResourceMgr_PatchCustomGfxByName(resource, dlist3, 2, gsSPEndDisplayList());
-        }
-    } else {
-        ResourceMgr_UnpatchGfxByName(resource, dlist1);
-        ResourceMgr_UnpatchGfxByName(resource, dlist2);
-        if (dlist3 != NULL) {
-            ResourceMgr_UnpatchGfxByName(resource, dlist3);
-        }
-    }
-}
+//void PatchOrUnpatchWithoutGfx(const char* resource, const char* dlist1, const char* dlist2, const char* dlist3) {
+//    if (resource == NULL || dlist1 == NULL || dlist2 == NULL) {
+//        return;
+//    }
+//
+//    if (CVarGetInteger(CVAR_ENHANCEMENT("AltAssets"), 0)) {
+//        ResourceMgr_PatchCustomGfxByName(resource, dlist1, 0, gsSPEndDisplayList());
+//        if (dlist3 == NULL) {
+//            ResourceMgr_PatchCustomGfxByName(resource, dlist2, 1, gsSPEndDisplayList());
+//        } else {
+//            ResourceMgr_PatchCustomGfxByName(resource, dlist2, 1, gsSPEndDisplayList());
+//            ResourceMgr_PatchCustomGfxByName(resource, dlist3, 2, gsSPEndDisplayList());
+//        }
+//    } else {
+//        ResourceMgr_UnpatchGfxByName(resource, dlist1);
+//        ResourceMgr_UnpatchGfxByName(resource, dlist2);
+//        if (dlist3 != NULL) {
+//            ResourceMgr_UnpatchGfxByName(resource, dlist3);
+//        }
+//    }
+//}
 
 
 void PatchOrUnpatch(const char* resource, const char* gfx, const char* dlist1, const char* dlist2, const char* dlist3, const char* alternateDL) {
     if (resource == NULL || gfx == NULL || dlist1 == NULL || dlist2 == NULL)
         return;
 
-    if (CVarGetInteger("gAltAssets", 0)) {
+    if (CVarGetInteger(CVAR_ENHANCEMENT("AltAssets"), 0)) {
         if (ResourceGetIsCustomByName(gfx)) {
             if (alternateDL == NULL || ResourceGetIsCustomByName(alternateDL) || ResourceMgr_FileExists(alternateDL)) {
                 ResourceMgr_PatchCustomGfxByName(resource, dlist1, 0, gsSPDisplayListOTRFilePath(gfx));
@@ -887,7 +866,7 @@ void UpdatePatchCustomEquipmentDlists() {
         PatchOrUnpatch(gLinkChildSheathNearDL, gCustomMasterSwordSheathDL, "customKokiriSheath1", "customKokiriSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildSwordAndSheathNearDL, gCustomMasterSwordInSheathDL, "customKokiriSwordSheath1", "customKokiriSwordSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildDekuShieldSwordAndSheathNearDL, gCustomMasterSwordInSheathDL, "customDekuShieldSword1", "customDekuShieldSword2", "customDekuShieldSword3", gCustomDekuShieldOnBackDL);
-        if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+        if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
             PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomMasterSwordInSheathDL);
         } else {
             PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomMasterSwordInSheathDL);
@@ -907,13 +886,13 @@ void UpdatePatchCustomEquipmentDlists() {
         PatchOrUnpatch(gLinkChildSwordAndSheathNearDL, gCustomLongswordInSheathDL, "customKokiriSwordSheath1", "customKokiriSwordSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildDekuShieldSwordAndSheathNearDL, gCustomLongswordInSheathDL, "customDekuShieldSword1", "customDekuShieldSword2", "customDekuShieldSword3", gCustomDekuShieldOnBackDL);
         if (gPlayState != nullptr && GET_PLAYER(gPlayState)->sheathType == PLAYER_MODELTYPE_SHEATH_19) {
-            if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+            if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomLongswordSheathDL);
             } else {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomLongswordSheathDL);
             }
         } else {
-            if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+            if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomLongswordInSheathDL);
             } else {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomLongswordInSheathDL);
@@ -935,13 +914,13 @@ void UpdatePatchCustomEquipmentDlists() {
         PatchOrUnpatch(gLinkChildSwordAndSheathNearDL, gCustomBreakableLongswordInSheathDL, "customKokiriSwordSheath1", "customKokiriSwordSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildDekuShieldSwordAndSheathNearDL, gCustomBreakableLongswordInSheathDL, "customDekuShieldSword1", "customDekuShieldSword2", "customDekuShieldSword3", gCustomDekuShieldOnBackDL);
         if (gPlayState != nullptr && GET_PLAYER(gPlayState)->sheathType == PLAYER_MODELTYPE_SHEATH_19) {
-            if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+            if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBreakableLongswordSheathDL);
             } else {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBreakableLongswordSheathDL);
             }
         } else {
-            if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+            if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBreakableLongswordInSheathDL);
             } else {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBreakableLongswordInSheathDL);
@@ -962,13 +941,13 @@ void UpdatePatchCustomEquipmentDlists() {
         PatchOrUnpatch(gLinkChildSwordAndSheathNearDL, gCustomBrokenLongswordInSheathDL, "customKokiriSwordSheath1", "customKokiriSwordSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildDekuShieldSwordAndSheathNearDL, gCustomBrokenLongswordInSheathDL, "customDekuShieldSword1", "customDekuShieldSword2", "customDekuShieldSword3", gCustomDekuShieldOnBackDL);
         if (gPlayState != nullptr && GET_PLAYER(gPlayState)->sheathType == PLAYER_MODELTYPE_SHEATH_19) {
-            if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+            if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBrokenLongswordSheathDL);
             } else {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBrokenLongswordSheathDL);
             }
         } else {
-            if (!CVarGetInteger("gEnhancements.ScaleAdultEquimentAsChild", 0)) {
+            if (!CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquimentAsChild"), 0)) {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBrokenLongswordInSheathDL);
             } else {
                 PatchOrUnpatch(gLinkChildDekuShieldWithMatrixDL, gCustomDekuShieldOnBackScaledDL, "customDekuShieldBack1", "customDekuShieldBack2", "customDekuShieldBack2", gCustomBrokenLongswordInSheathDL);
@@ -1014,11 +993,15 @@ void UpdatePatchCustomEquipmentDlists() {
     PatchOrUnpatch(gLinkChildLeftFistAndBoomerangNearDL, gCustomBoomerangDL, "customBoomerang1", "customBoomerang2", "customBoomerang3", gLinkChildLeftFistNearDL);
     PatchOrUnpatch(gLinkChildRightHandHoldingSlingshotNearDL, gCustomSlingshotDL, "customSlingshot1", "customSlingshot2", "customSlingshot3", gLinkChildRightHandClosedNearDL);
     PatchOrUnpatch(gLinkChildRightArmStretchedSlingshotDL, gCustomSlingshotDL, "customSlingshotFPS1", "customSlingshotFPS2", "customSlingshotFPS3", gCustomChildFPSHandDL);
-    if (LINK_IS_CHILD && CVarGetInteger("gEnhancements.EquimentAlwaysVisible", 0)) {
+    if (LINK_IS_CHILD && CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
         PatchOrUnpatch(gCustomAdultFPSHandDL, gCustomChildFPSHandDL, "patchChildFPSHand1", "patchChildFPSHand2", NULL, NULL);
+        PatchOrUnpatch(gLinkAdultRightHandClosedNearDL, gLinkChildRightHandClosedNearDL, "customTest1", "customTest2", NULL, NULL);
+        PatchOrUnpatch(gLinkAdultLeftHandClosedNearDL, gLinkChildLeftFistNearDL, "customTest1", "customTest2", NULL, NULL);
     }
-    if (LINK_IS_ADULT && CVarGetInteger("gEnhancements.EquimentAlwaysVisible", 0)) {
+    if (LINK_IS_ADULT && CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
         PatchOrUnpatch(gCustomChildFPSHandDL, gCustomAdultFPSHandDL, "patchAdultFPSHand1", "patchAdultFPSHand2", NULL, NULL);
+        PatchOrUnpatch(gLinkChildRightHandClosedNearDL, gLinkAdultRightHandClosedNearDL, "customTest1", "customTest2", NULL, NULL);
+        PatchOrUnpatch(gLinkChildLeftFistNearDL, gLinkAdultLeftHandClosedNearDL, "customTest1", "customTest2", NULL, NULL);
     }
 }
 
@@ -1041,6 +1024,9 @@ void RegisterPatchCustomEquipmentDlistsHandler() {
             lastSheathType = GET_PLAYER(gPlayState)->sheathType;
             lastBgsFlag = gSaveContext.bgsFlag;
         }
+    });
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneSpawnActors>([]() { 
+        UpdatePatchCustomEquipmentDlists(); 
     });
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t fileNum) {
         UpdatePatchCustomEquipmentDlists();
