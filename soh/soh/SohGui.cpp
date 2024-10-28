@@ -33,15 +33,11 @@
 #include "soh/resource/type/Skeleton.h"
 #include "libultraship/libultraship.h"
 
-#ifdef ENABLE_REMOTE_CONTROL
-#include "Enhancements/crowd-control/CrowdControl.h"
-#include "Enhancements/game-interactor/GameInteractor_Sail.h"
-#endif
-
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "Enhancements/cosmetics/authenticGfxPatches.h"
 #include "Enhancements/resolution-editor/ResolutionEditor.h"
 #include "Enhancements/debugger/MessageViewer.h"
+#include "soh/Notification/Notification.h"
 
 bool isBetaQuestEnabled = false;
 
@@ -113,6 +109,7 @@ namespace SohGui {
 
     std::shared_ptr<Ship::GuiWindow> mConsoleWindow;
     std::shared_ptr<Ship::GuiWindow> mStatsWindow;
+    std::shared_ptr<Ship::GuiWindow> mGfxDebuggerWindow;
     std::shared_ptr<Ship::GuiWindow> mInputEditorWindow;
 
     std::shared_ptr<AudioEditor> mAudioEditorWindow;
@@ -122,18 +119,22 @@ namespace SohGui {
     std::shared_ptr<ActorViewerWindow> mActorViewerWindow;
     std::shared_ptr<ColViewerWindow> mColViewerWindow;
     std::shared_ptr<SaveEditorWindow> mSaveEditorWindow;
+    std::shared_ptr<HookDebuggerWindow> mHookDebuggerWindow;
     std::shared_ptr<DLViewerWindow> mDLViewerWindow;
     std::shared_ptr<ValueViewerWindow> mValueViewerWindow;
     std::shared_ptr<MessageViewer> mMessageViewerWindow;
     std::shared_ptr<GameplayStatsWindow> mGameplayStatsWindow;
     std::shared_ptr<CheckTracker::CheckTrackerSettingsWindow> mCheckTrackerSettingsWindow;
     std::shared_ptr<CheckTracker::CheckTrackerWindow> mCheckTrackerWindow;
+    std::shared_ptr<EntranceTrackerSettingsWindow> mEntranceTrackerSettingsWindow;
     std::shared_ptr<EntranceTrackerWindow> mEntranceTrackerWindow;
     std::shared_ptr<ItemTrackerSettingsWindow> mItemTrackerSettingsWindow;
     std::shared_ptr<ItemTrackerWindow> mItemTrackerWindow;
+    std::shared_ptr<TimeSplitWindow> mTimeSplitWindow;
     std::shared_ptr<RandomizerSettingsWindow> mRandomizerSettingsWindow;
     std::shared_ptr<AdvancedResolutionSettings::AdvancedResolutionSettingsWindow> mAdvancedResolutionSettingsWindow;
     std::shared_ptr<SohModalWindow> mModalWindow;
+    std::shared_ptr<Notification::Window> mNotificationWindow;
 
     void SetupGuiElements() {
         auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
@@ -143,9 +144,9 @@ namespace SohGui {
 
         if (gui->GetMenuBar() && !gui->GetMenuBar()->IsVisible()) {
 #if defined(__SWITCH__) || defined(__WIIU__)
-            gui->GetGameOverlay()->TextDrawNotification(30.0f, true, "Press - to access enhancements menu");
+            Notification::Emit({ .message = "Press - to access enhancements menu", .remainingTime = 10.0f });
 #else
-            gui->GetGameOverlay()->TextDrawNotification(30.0f, true, "Press F1 to access enhancements menu");
+            Notification::Emit({ .message = "Press F1 to access enhancements menu", .remainingTime = 10.0f });
 #endif
         }
 
@@ -159,7 +160,12 @@ namespace SohGui {
             SPDLOG_ERROR("Could not find console window");
         }
 
-        mInputEditorWindow = gui->GetGuiWindow("Input Editor");
+        mGfxDebuggerWindow = gui->GetGuiWindow("GfxDebuggerWindow");
+        if (mGfxDebuggerWindow == nullptr) {
+            SPDLOG_ERROR("Could not find input GfxDebuggerWindow");
+        }
+
+        mInputEditorWindow = gui->GetGuiWindow("Controller Configuration");
         if (mInputEditorWindow == nullptr) {
             SPDLOG_ERROR("Could not find input editor window");
         }
@@ -178,6 +184,8 @@ namespace SohGui {
         gui->AddGuiWindow(mColViewerWindow);
         mSaveEditorWindow = std::make_shared<SaveEditorWindow>(CVAR_WINDOW("SaveEditor"), "Save Editor", ImVec2(520, 600));
         gui->AddGuiWindow(mSaveEditorWindow);
+        mHookDebuggerWindow = std::make_shared<HookDebuggerWindow>(CVAR_WINDOW("HookDebugger"), "Hook Debugger", ImVec2(1250, 850));
+        gui->AddGuiWindow(mHookDebuggerWindow);
         mDLViewerWindow = std::make_shared<DLViewerWindow>(CVAR_WINDOW("DLViewer"), "Display List Viewer", ImVec2(520, 600));
         gui->AddGuiWindow(mDLViewerWindow);
         mValueViewerWindow = std::make_shared<ValueViewerWindow>(CVAR_WINDOW("ValueViewer"), "Value Viewer", ImVec2(520, 600));
@@ -190,31 +198,40 @@ namespace SohGui {
         gui->AddGuiWindow(mCheckTrackerWindow);
         mCheckTrackerSettingsWindow = std::make_shared<CheckTracker::CheckTrackerSettingsWindow>(CVAR_WINDOW("CheckTrackerSettings"), "Check Tracker Settings", ImVec2(600, 375));
         gui->AddGuiWindow(mCheckTrackerSettingsWindow);
-        mEntranceTrackerWindow = std::make_shared<EntranceTrackerWindow>(CVAR_WINDOW("EntranceTracker"),"Entrance Tracker");
+        mEntranceTrackerWindow = std::make_shared<EntranceTrackerWindow>(CVAR_WINDOW("EntranceTracker"), "Entrance Tracker");
         gui->AddGuiWindow(mEntranceTrackerWindow);
+        mEntranceTrackerSettingsWindow = std::make_shared<EntranceTrackerSettingsWindow>(CVAR_WINDOW("EntranceTrackerSettings"), "Entrance Tracker Settings", ImVec2(600, 375));
+        gui->AddGuiWindow(mEntranceTrackerSettingsWindow);
         mItemTrackerWindow = std::make_shared<ItemTrackerWindow>(CVAR_WINDOW("ItemTracker"), "Item Tracker");
         gui->AddGuiWindow(mItemTrackerWindow);
         mItemTrackerSettingsWindow = std::make_shared<ItemTrackerSettingsWindow>(CVAR_WINDOW("ItemTrackerSettings"), "Item Tracker Settings", ImVec2(733, 472));
         gui->AddGuiWindow(mItemTrackerSettingsWindow);
         mRandomizerSettingsWindow = std::make_shared<RandomizerSettingsWindow>(CVAR_WINDOW("RandomizerSettings"), "Randomizer Settings", ImVec2(920, 600));
         gui->AddGuiWindow(mRandomizerSettingsWindow);
+        mTimeSplitWindow = std::make_shared<TimeSplitWindow>(CVAR_WINDOW("TimeSplitEnabled"), "Time Splits", ImVec2(450, 660));
+        gui->AddGuiWindow(mTimeSplitWindow);
         mAdvancedResolutionSettingsWindow = std::make_shared<AdvancedResolutionSettings::AdvancedResolutionSettingsWindow>(CVAR_WINDOW("AdvancedResolutionEditor"), "Advanced Resolution Settings", ImVec2(497, 599));
         gui->AddGuiWindow(mAdvancedResolutionSettingsWindow);
         mModalWindow = std::make_shared<SohModalWindow>(CVAR_WINDOW("ModalWindow"), "Modal Window");
         gui->AddGuiWindow(mModalWindow);
         mModalWindow->Show();
+        mNotificationWindow = std::make_shared<Notification::Window>(CVAR_WINDOW("Notifications"), "Notifications Window");
+        gui->AddGuiWindow(mNotificationWindow);
+        mNotificationWindow->Show();
     }
 
     void Destroy() {
         auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
         gui->RemoveAllGuiWindows();
         
+        mNotificationWindow = nullptr;
         mModalWindow = nullptr;
         mAdvancedResolutionSettingsWindow = nullptr;
         mRandomizerSettingsWindow = nullptr;
         mItemTrackerWindow = nullptr;
         mItemTrackerSettingsWindow = nullptr;
         mEntranceTrackerWindow = nullptr;
+        mEntranceTrackerSettingsWindow = nullptr;
         mCheckTrackerWindow = nullptr;
         mCheckTrackerSettingsWindow = nullptr;
         mGameplayStatsWindow = nullptr;
@@ -222,6 +239,7 @@ namespace SohGui {
         mValueViewerWindow = nullptr;
         mMessageViewerWindow = nullptr;
         mSaveEditorWindow = nullptr;
+        mHookDebuggerWindow = nullptr;
         mColViewerWindow = nullptr;
         mActorViewerWindow = nullptr;
         mCosmeticsEditorWindow = nullptr;
@@ -229,9 +247,11 @@ namespace SohGui {
         mInputEditorWindow = nullptr;
         mStatsWindow = nullptr;
         mConsoleWindow = nullptr;
+        mGfxDebuggerWindow = nullptr;
         mSohMenuBar = nullptr;
         mInputViewer = nullptr;
         mInputViewerSettings = nullptr;
+        mTimeSplitWindow = nullptr;
     }
 
     void RegisterPopup(std::string title, std::string message, std::string button1, std::string button2, std::function<void()> button1callback, std::function<void()> button2callback) {

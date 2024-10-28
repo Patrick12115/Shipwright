@@ -11,13 +11,15 @@
 #include "graphic/Fast3D/gfx_rendering_api.h"
 #include "OTRGlobals.h"
 #include "z64.h"
+#include "macros.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/presets.h"
 #include "soh/Enhancements/mods.h"
+#include "soh/Notification/Notification.h"
 #include "Enhancements/cosmetics/authenticGfxPatches.h"
 #ifdef ENABLE_REMOTE_CONTROL
-#include "Enhancements/crowd-control/CrowdControl.h"
-#include "Enhancements/game-interactor/GameInteractor_Sail.h"
+#include "soh/Network/CrowdControl/CrowdControl.h"
+#include "soh/Network/Sail/Sail.h"
 #endif
 
 
@@ -27,6 +29,7 @@
 #include "Enhancements/debugger/actorViewer.h"
 #include "Enhancements/debugger/colViewer.h"
 #include "Enhancements/debugger/debugSaveEditor.h"
+#include "Enhancements/debugger/hookDebugger.h"
 #include "Enhancements/debugger/dlViewer.h"
 #include "Enhancements/debugger/valueViewer.h"
 #include "Enhancements/gameplaystatswindow.h"
@@ -36,6 +39,12 @@
 #include "Enhancements/randomizer/randomizer_item_tracker.h"
 #include "Enhancements/randomizer/randomizer_settings_window.h"
 #include "Enhancements/resolution-editor/ResolutionEditor.h"
+#include "Enhancements/enemyrandomizer.h"
+#include "Enhancements/timesplits/TimeSplits.h"
+
+// FA icons are kind of wonky, if they worked how I expected them to the "+ 2.0f" wouldn't be needed, but
+// they don't work how I expect them to so I added that because it looked good when I eyeballed it
+#define FA_ICON_BUTTON_FRAME_PADDING_X(icon) (((optionsButtonSize.x - ImGui::CalcTextSize(icon).x) / 2) + 2.0f)
 
 extern bool isBetaQuestEnabled;
 
@@ -69,6 +78,8 @@ static const char* imguiScaleOptions[4] = { "Small", "Normal", "Large", "X-Large
     };
 
     static const char* chestStyleMatchesContentsOptions[4] = { "Disabled", "Both", "Texture Only", "Size Only" };
+    static const char* skipGetItemAnimationOptions[3] = { "Disabled", "Junk Items", "All Items" };
+    static const char* skipForcedDialogOptions[4] = { "None", "Navi Only", "NPCs Only", "All" };
     static const char* bunnyHoodOptions[3] = { "Disabled", "Faster Run & Longer Jump", "Faster Run" };
     static const char* mirroredWorldModes[9] = {
         "Disabled",           "Always",        "Random",          "Random (Seeded)",          "Dungeons",
@@ -104,6 +115,16 @@ static const char* imguiScaleOptions[4] = { "Small", "Normal", "Large", "X-Large
     };
     static const char* timeTravelOptions[3] = { "Disabled", "Ocarina of Time", "Any Ocarina" };
     static const char* swordToggleModes[3] = { "Disabled", "Child Toggle", "Both Ages (May lead to unintended behaviour)"};
+    static const char* itemCountMessageCVars[3] = {
+        CVAR_ENHANCEMENT("InjectItemCounts.GoldSkulltula"),
+        CVAR_ENHANCEMENT("InjectItemCounts.HeartPiece"),
+        CVAR_ENHANCEMENT("InjectItemCounts.HeartContainer"),
+    };
+    static const char* itemCountMessageOptions[sizeof(itemCountMessageCVars) / sizeof(const char*)] = {
+        "Gold Skulltula Tokens",
+        "Pieces of Heart",
+        "Heart Containers",
+    };
 
 extern "C" SaveContext gSaveContext;
 
@@ -198,6 +219,7 @@ void DrawShipMenu() {
 }
 
 extern std::shared_ptr<Ship::GuiWindow> mInputEditorWindow;
+extern std::shared_ptr<Ship::GuiWindow> mGfxDebuggerWindow;
 extern std::shared_ptr<InputViewer> mInputViewer;
 extern std::shared_ptr<InputViewerSettingsWindow> mInputViewerSettings;
 extern std::shared_ptr<AdvancedResolutionSettings::AdvancedResolutionSettingsWindow> mAdvancedResolutionSettingsWindow;
@@ -255,7 +277,7 @@ void DrawSettingsMenu() {
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.38f, 0.56f, 1.0f));
             if (mInputEditorWindow) {
-                if (ImGui::Button(GetWindowButtonText("Controller Mapping", CVarGetInteger(CVAR_CONTROLLER_CONFIGURATION_WINDOW_OPEN, 0)).c_str(), ImVec2 (-1.0f, 0.0f))) {
+                if (ImGui::Button(GetWindowButtonText("Controller Mapping", CVarGetInteger(CVAR_WINDOW("ControllerConfiguration"), 0)).c_str(), ImVec2 (-1.0f, 0.0f))) {
                     mInputEditorWindow->ToggleVisibility();
                 }
             }
@@ -544,6 +566,35 @@ void DrawSettingsMenu() {
             
             ImGui::EndMenu();
         }
+
+        UIWidgets::Spacer(0);
+
+        if (ImGui::BeginMenu("Notifications")) {
+            static const char* notificationPosition[] = {
+                "Top Left",
+                "Top Right",
+                "Bottom Left",
+                "Bottom Right",
+                "Hidden",
+            };
+
+            ImGui::Text("Position");
+            UIWidgets::EnhancementCombobox(CVAR_SETTING("Notifications.Position"), notificationPosition, 0);
+            UIWidgets::EnhancementSliderFloat("Duration: %.0f seconds", "##NotificationDuration", CVAR_SETTING("Notifications.Duration"), 3.0f, 30.0f, "", 10.0f, false, false, false);
+            UIWidgets::EnhancementSliderFloat("BG Opacity: %.1f %%", "##NotificaitonBgOpacity", CVAR_SETTING("Notifications.BgOpacity"), 0.0f, 1.0f, "", 0.5f, true, false, false);
+            UIWidgets::EnhancementSliderFloat("Size: %.1f", "##NotificaitonSize", CVAR_SETTING("Notifications.Size"), 1.0f, 5.0f, "", 1.8f, false, false, false);
+
+            UIWidgets::Spacer(0);
+
+            if (ImGui::Button("Test Notification", ImVec2(-1.0f, 0.0f))) {
+                Notification::Emit({
+                    .message = (gPlayState != NULL ? SohUtils::GetSceneName(gPlayState->sceneNum) : "Hyrule") + " looks beautiful today!",
+                });
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMenu();
     }
 }
@@ -551,6 +602,7 @@ void DrawSettingsMenu() {
 extern std::shared_ptr<AudioEditor> mAudioEditorWindow;
 extern std::shared_ptr<CosmeticsEditorWindow> mCosmeticsEditorWindow;
 extern std::shared_ptr<GameplayStatsWindow> mGameplayStatsWindow;
+extern std::shared_ptr<TimeSplitWindow> mTimeSplitWindow;
 
 void DrawEnhancementsMenu() {
     if (ImGui::BeginMenu("Enhancements"))
@@ -573,16 +625,93 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Spacer(0);
                 ImGui::Text("Speed-ups:");
                 UIWidgets::PaddedSeparator();
+                bool allSkipsChecked =
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Intro"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Entrances"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.LearnSong"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.BossIntro"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.QuickBossDeaths"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.OnePoint"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), IS_RANDO) &&
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.DisableTitleCard"), IS_RANDO);
+                bool someSkipsChecked =
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Intro"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Entrances"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.LearnSong"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.BossIntro"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.QuickBossDeaths"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.OnePoint"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), IS_RANDO) ||
+                    CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.DisableTitleCard"), IS_RANDO);
+
+                ImGuiContext* g = ImGui::GetCurrentContext();
+                ImGuiItemFlags backup_item_flags = g->CurrentItemFlags;
+                if (!allSkipsChecked && someSkipsChecked) g->CurrentItemFlags |= ImGuiItemFlags_MixedValue;
+                if (ImGui::Checkbox("All", &allSkipsChecked)) {
+                    int32_t newValue = allSkipsChecked ? 1 : 0;
+
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Intro"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Entrances"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.LearnSong"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.BossIntro"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.QuickBossDeaths"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.OnePoint"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), newValue);
+                    CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.DisableTitleCard"), newValue);
+
+                    Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
+                }
+                g->CurrentItemFlags = backup_item_flags;
+                UIWidgets::PaddedEnhancementCheckbox("Skip Intro", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Intro"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Entrance Cutscenes", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Entrances"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Story Cutscenes", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Song Cutscenes", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.LearnSong"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Boss Introductions", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.BossIntro"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Quick Boss Deaths", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.QuickBossDeaths"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip One Point Cutscenes (Chests, Door Unlocks, etc)", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.OnePoint"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Owl Interactions", CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Misc Interactions", CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Disable Title Card", CVAR_ENHANCEMENT("TimeSavers.DisableTitleCard"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, IS_RANDO);
+                UIWidgets::PaddedEnhancementCheckbox("Skip Glitch-Aiding Cutscenes", CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.GlitchAiding"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, 0);
+                UIWidgets::Tooltip("Skip cutscenes that are associated with useful glitches, currently this is only the Fire Temple Darunia CS and Forest Temple Poe Sisters CS");
+                UIWidgets::PaddedEnhancementCheckbox("Skip Child Stealth", CVAR_ENHANCEMENT("TimeSavers.SkipChildStealth"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, false);
+                UIWidgets::Tooltip("The crawlspace into Hyrule Castle goes straight to Zelda, skipping the guards.");
+                UIWidgets::PaddedEnhancementCheckbox("Skip Tower Escape", CVAR_ENHANCEMENT("TimeSavers.SkipTowerEscape"), false, false, false, "", UIWidgets::CheckboxGraphics::Cross, false);
+                UIWidgets::Tooltip("Skip the tower escape sequence between Ganondorf and Ganon.");
+
+                UIWidgets::PaddedText("Skip Get Item Animations", true, false);
+                UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), skipGetItemAnimationOptions, SGIA_DISABLED);
+                if (CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_DISABLED) != SGIA_DISABLED) {
+                    UIWidgets::EnhancementSliderFloat("Item Scale: %f", "##ItemScale", CVAR_ENHANCEMENT("TimeSavers.SkipGetItemAnimationScale"), 5.0f, 15.0f, "", 10.0f, false);
+                    UIWidgets::Tooltip("The size of the item when it is picked up");
+                }
+
+                UIWidgets::PaddedText("Skip Forced Dialog", true, false);
+                UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("TimeSavers.SkipForcedDialog"), skipForcedDialogOptions, FORCED_DIALOG_SKIP_NONE);
+                UIWidgets::Tooltip("Prevent forced conversations with Navi or other NPCs");
 
                 UIWidgets::PaddedEnhancementSliderInt("Text Speed: %dx", "##TEXTSPEED", CVAR_ENHANCEMENT("TextSpeed"), 1, 5, "", 1, true, false, true);
                 UIWidgets::PaddedEnhancementCheckbox("Skip Text", CVAR_ENHANCEMENT("SkipText"), false, true);
                 UIWidgets::Tooltip("Holding down B skips text");
-                UIWidgets::PaddedEnhancementSliderInt("King Zora Speed: %dx", "##MWEEPSPEED", CVAR_ENHANCEMENT("MweepSpeed"), 1, 5, "", 1, true, false, true);
+                UIWidgets::PaddedEnhancementSliderInt("Slow Text Speed: %dx", "##SLOWTEXTSPEED", CVAR_ENHANCEMENT("SlowTextSpeed"), 1, 5, "", 1, true, false, true);
+                UIWidgets::Tooltip("Changes the speed of sections of text that normally are paced slower than the text surrounding it.");
+                if (ImGui::Button("Match Normal Text")) {
+                    CVarSetInteger(CVAR_ENHANCEMENT("SlowTextSpeed"), CVarGetInteger(CVAR_ENHANCEMENT("TextSpeed"), 1));
+                }
+                UIWidgets::Tooltip("Makes the speed of slow text match the normal text speed above.");
+                UIWidgets::PaddedEnhancementSliderFloat("King Zora Speed: %.2fx", "##MWEEPSPEED", CVAR_ENHANCEMENT("MweepSpeed"), 0.1f, 5.0f, "", 1.0f, false, true, false, true);
                 UIWidgets::PaddedEnhancementSliderInt("Vine/Ladder Climb speed +%d", "##CLIMBSPEED", CVAR_ENHANCEMENT("ClimbSpeed"), 0, 12, "", 0, true, false, true);
                 UIWidgets::PaddedEnhancementSliderInt("Block pushing speed +%d", "##BLOCKSPEED", CVAR_ENHANCEMENT("FasterBlockPush"), 0, 5, "", 0, true, false, true);
                 UIWidgets::PaddedEnhancementSliderInt("Crawl speed %dx", "##CRAWLSPEED", CVAR_ENHANCEMENT("CrawlSpeed"), 1, 4, "", 1, true, false, true);
                 UIWidgets::PaddedEnhancementCheckbox("Faster Heavy Block Lift", CVAR_ENHANCEMENT("FasterHeavyBlockLift"), false, false);
                 UIWidgets::Tooltip("Speeds up lifting silver rocks and obelisks");
+                UIWidgets::PaddedEnhancementCheckbox("Faster Rupee Accumulator", CVAR_ENHANCEMENT("TimeSavers.FasterRupeeAccumulator"), false, false);
                 UIWidgets::PaddedEnhancementCheckbox("Skip Pickup Messages", CVAR_ENHANCEMENT("FastDrops"), true, false);
                 UIWidgets::Tooltip("Skip pickup messages for new consumable items and bottle swipes");
                 UIWidgets::PaddedEnhancementCheckbox("Fast Ocarina Playback", CVAR_ENHANCEMENT("FastOcarinaPlayback"), true, false);
@@ -604,14 +733,12 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Spacer(0);
                 ImGui::Text("Changes:");
                 UIWidgets::PaddedSeparator();
-                
+
                 UIWidgets::PaddedEnhancementSliderInt("Biggoron Forge Time: %d days", "##FORGETIME", CVAR_ENHANCEMENT("ForgeTime"), 0, 3, "", 3, true, false, true);
                 UIWidgets::Tooltip("Allows you to change the number of days it takes for Biggoron to forge the Biggoron Sword");
                 UIWidgets::PaddedEnhancementCheckbox("Remember Save Location", CVAR_ENHANCEMENT("RememberSaveLocation"), false, false);
                 UIWidgets::Tooltip("When loading a save, places Link at the last entrance he went through.\n"
                         "This doesn't work if the save was made in grottos/fairy fountains or dungeons.");
-                UIWidgets::PaddedEnhancementCheckbox("No Forced Navi", CVAR_ENHANCEMENT("NoForcedNavi"), true, false);
-                UIWidgets::Tooltip("Prevent forced Navi conversations");
                 UIWidgets::PaddedEnhancementCheckbox("Navi Timer Resets", CVAR_ENHANCEMENT("ResetNaviTimer"), true, false);
                 UIWidgets::Tooltip("Resets the Navi timer on scene change. If you have already talked to her, she will try and talk to you again, instead of needing a save warp or death. ");
                 UIWidgets::PaddedEnhancementCheckbox("No Skulltula Freeze", CVAR_ENHANCEMENT("SkulltulaFreeze"), true, false);
@@ -676,6 +803,9 @@ void DrawEnhancementsMenu() {
 
             if (ImGui::BeginMenu("Items"))
             {
+                UIWidgets::PaddedEnhancementCheckbox("Equip Items on D-pad", CVAR_ENHANCEMENT("DpadEquips"), true, false);
+                UIWidgets::Tooltip("Equip items and equipment on the D-pad\nIf used with \"D-pad on Pause Screen\", you "
+                                   "must hold C-Up to equip instead of navigate");
                 UIWidgets::PaddedEnhancementCheckbox("Instant Putaway", CVAR_ENHANCEMENT("InstantPutaway"), true, false);
                 UIWidgets::Tooltip("Allow Link to put items away without having to wait around");
                 UIWidgets::PaddedEnhancementCheckbox("Instant Boomerang Recall", CVAR_ENHANCEMENT("FastBoomerang"), true, false);
@@ -688,8 +818,17 @@ void DrawEnhancementsMenu() {
                     "Wearing the Bunny Hood grants a speed increase like in Majora's Mask. The longer jump option is not accounted for in randomizer logic.\n\n"
                     "Also disables NPC's reactions to wearing the Bunny Hood."
                 );
-                UIWidgets::PaddedEnhancementCheckbox("Bunny Hood Equippable as Adult", CVAR_ENHANCEMENT("AdultBunnyHood"), true, false, (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) == BUNNY_HOOD_VANILLA), "Only available with increased bunny hood speed", UIWidgets::CheckboxGraphics::Cross, false);
-                UIWidgets::Tooltip("Allows the bunny hood to be equipped normally from the pause menu as adult.");
+                UIWidgets::PaddedEnhancementCheckbox("Masks Equippable as Adult", CVAR_ENHANCEMENT("AdultMasks"), true, false);
+                UIWidgets::Tooltip("Allows masks to be equipped normally from the pause menu as adult.");
+                UIWidgets::PaddedEnhancementCheckbox("Persistent masks", CVAR_ENHANCEMENT("PersistentMasks"), true, false);
+                UIWidgets::Tooltip(
+                    "Stops masks from automatically unequipping on certain situations:\n"
+                    "- When entering a new scene\n"
+                    "- When not in any C button or the D-Pad\n"
+                    "- When saving and quitting\n"
+                    "- When dying\n"
+                    "- When traveling thru time (if \"Masks Equippable as Adult\" is activated)"
+                );
                 UIWidgets::PaddedEnhancementCheckbox("Mask Select in Inventory", CVAR_ENHANCEMENT("MaskSelect"), true, false);
                 UIWidgets::Tooltip("After completing the mask trading sub-quest, press A and any direction on the mask slot to change masks");
                 UIWidgets::PaddedEnhancementCheckbox("Nuts explode bombs", CVAR_ENHANCEMENT("NutsExplodeBombs"), true, false);
@@ -706,6 +845,11 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("Explosions are now a static size, like in Majora's Mask and OoT3D. Makes bombchu hovering much easier.");
                 UIWidgets::PaddedEnhancementCheckbox("Prevent Bombchus Forcing First-Person", CVAR_ENHANCEMENT("DisableFirstPersonChus"), true, false);
                 UIWidgets::Tooltip("Prevent bombchus from forcing the camera into first-person mode when released.");
+                UIWidgets::PaddedEnhancementCheckbox("Better Bombchu Shopping", CVAR_ENHANCEMENT("BetterBombchuShopping"), true, false,
+                                                        IS_RANDO, "This setting is forcefully enabled when you are playing a randomizer.", UIWidgets::CheckboxGraphics::Checkmark);
+                UIWidgets::Tooltip("Bombchus do not sell out when bought, and a 10 pack of bombchus costs 99 rupees instead of 100."
+                "\n"
+                "Toggling while inside the shop will not change prices or restock any SOLD OUTs");
                 UIWidgets::PaddedEnhancementCheckbox("Aiming reticle for the bow/slingshot", CVAR_ENHANCEMENT("BowReticle"), true, false);
                 UIWidgets::Tooltip("Aiming with a bow or slingshot will display a reticle as with the hookshot when the projectile is ready to fire.");
                 if (UIWidgets::PaddedEnhancementCheckbox("Allow strength equipment to be toggled", CVAR_ENHANCEMENT("ToggleStrength"), true, false)) {
@@ -714,6 +858,35 @@ void DrawEnhancementsMenu() {
                     }
                 }
                 UIWidgets::Tooltip("Allows strength to be toggled on and off by pressing A on the strength upgrade in the equipment subscreen of the pause menu (This allows performing some glitches that require the player to not have strength).");
+                ImGui::EndMenu();
+            }
+
+            UIWidgets::Spacer(0);
+
+            if (ImGui::BeginMenu("Item Count Messages")) {
+                int numOptions = sizeof(itemCountMessageCVars) / sizeof(const char*);
+                bool allItemCountsChecked = std::all_of(itemCountMessageCVars, itemCountMessageCVars + numOptions,
+                                                        [](const char* cvar) { return CVarGetInteger(cvar, 0); });
+                bool someItemCountsChecked = std::any_of(itemCountMessageCVars, itemCountMessageCVars + numOptions,
+                                                         [](const char* cvar) { return CVarGetInteger(cvar, 0); });
+
+                ImGuiContext* g = ImGui::GetCurrentContext();
+                ImGuiItemFlags backup_item_flags = g->CurrentItemFlags;
+                if (!allItemCountsChecked && someItemCountsChecked) g->CurrentItemFlags |= ImGuiItemFlags_MixedValue;
+                if (ImGui::Checkbox("All", &allItemCountsChecked)) {
+                    int32_t newValue = allItemCountsChecked ? 1 : 0;
+
+                    std::for_each(itemCountMessageCVars, itemCountMessageCVars + numOptions,
+                                  [newValue](const char* cvar) { CVarSetInteger(cvar, newValue); });
+
+                    Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
+                }
+                g->CurrentItemFlags = backup_item_flags;
+
+                for (int i = 0; i < numOptions; i++) {
+                    UIWidgets::PaddedEnhancementCheckbox(itemCountMessageOptions[i], itemCountMessageCVars[i], true, false);
+                }
+
                 ImGui::EndMenu();
             }
 
@@ -843,7 +1016,6 @@ void DrawEnhancementsMenu() {
                 }
 
                 UIWidgets::Spacer(0);
-
                 if (ImGui::BeginMenu("Fishing")) {
                     UIWidgets::EnhancementCheckbox("Customize Behavior", CVAR_ENHANCEMENT("CustomizeFishing"));
                     UIWidgets::Tooltip("Turn on/off changes to the fishing behavior");
@@ -855,10 +1027,16 @@ void DrawEnhancementsMenu() {
                     UIWidgets::Tooltip("When a line is stable, guarantee bite. Otherwise use default logic");
                     UIWidgets::PaddedEnhancementCheckbox("Fish Never Escape", CVAR_ENHANCEMENT("FishNeverEscape"), true, false, disabled, disabledTooltip);
                     UIWidgets::Tooltip("Once a hook has been set, fish will never let go while being reeled in.");
+                    UIWidgets::PaddedEnhancementCheckbox("Loaches Always Appear", CVAR_ENHANCEMENT("LoachesAlwaysAppear"), true, false, disabled, disabledTooltip);
+                    UIWidgets::Tooltip("Loaches will always appear in the fishing pond instead of every four visits.");
+                    UIWidgets::PaddedEnhancementCheckbox("Skip Keep Confirmation", CVAR_ENHANCEMENT("SkipKeepConfirmation"), true, false, disabled, disabledTooltip);
+                    UIWidgets::Tooltip("The pond owner will not ask to confirm if you want to keep a smaller fish.");
                     UIWidgets::PaddedEnhancementSliderInt("Child Minimum Weight: %d", "##cMinimumWeight", CVAR_ENHANCEMENT("MinimumFishWeightChild"), 3, 10, "", 10, true, true, false, disabled, disabledTooltip);
                     UIWidgets::Tooltip("The minimum weight for the unique fishing reward as a child");
                     UIWidgets::PaddedEnhancementSliderInt("Adult Minimum Weight: %d", "##aMinimumWeight", CVAR_ENHANCEMENT("MinimumFishWeightAdult"), 6, 13, "", 13, true, true, false, disabled, disabledTooltip);
                     UIWidgets::Tooltip("The minimum weight for the unique fishing reward as an adult");
+                    UIWidgets::PaddedEnhancementCheckbox("All fish are Hyrule Loaches", CVAR_ENHANCEMENT("AllHyruleLoaches"), true, false, disabled, disabledTooltip);
+                    UIWidgets::Tooltip("Every fish in the fishing pond will always be a Hyrule Loach\n\nNote: This requires reloading the area");
                     ImGui::EndMenu();
                 }
                 UIWidgets::Spacer(0);
@@ -979,7 +1157,7 @@ void DrawEnhancementsMenu() {
                     OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_ENABLE_BOMBCHU_DROPS) == 1;
                 static const char* forceEnableBombchuDropsText =
                     "This setting is forcefully enabled because a savefile\nwith \"Enable Bombchu Drops\" is loaded.";
-                UIWidgets::PaddedEnhancementCheckbox("Enable Bombchu Drops", CVAR_ENHANCEMENT("BombchuDrops"), true, false,
+                UIWidgets::PaddedEnhancementCheckbox("Enable Bombchu Drops", CVAR_ENHANCEMENT("EnableBombchuDrops"), true, false,
                                                         forceEnableBombchuDrops, forceEnableBombchuDropsText, UIWidgets::CheckboxGraphics::Checkmark);
                 UIWidgets::Tooltip("Bombchus will sometimes drop in place of bombs");
                 UIWidgets::PaddedEnhancementCheckbox("Trees Drop Sticks", CVAR_ENHANCEMENT("TreesDropSticks"), true, false);
@@ -996,8 +1174,7 @@ void DrawEnhancementsMenu() {
                 UIWidgets::Tooltip("All regular enemies and mini-bosses move and act twice as fast.");
                 UIWidgets::PaddedEnhancementCheckbox("Always Win Goron Pot", CVAR_ENHANCEMENT("GoronPot"), true, false);
                 UIWidgets::Tooltip("Always get the heart piece/purple rupee from the spinning Goron pot");
-                UIWidgets::PaddedEnhancementCheckbox("Always Win Dampe Digging Game", CVAR_ENHANCEMENT("DampeWin"), true, false, SaveManager::Instance->IsRandoFile(),
-                                                        "This setting is always enabled in randomizer files", UIWidgets::CheckboxGraphics::Checkmark);
+                UIWidgets::PaddedEnhancementCheckbox("Always Win Dampe Digging Game", CVAR_ENHANCEMENT("DampeWin"), true, false);
                 UIWidgets::Tooltip("Always win the heart piece/purple rupee on the first dig in Dampe's grave digging game, just like in rando\nIn a rando file, this is unconditionally enabled");
                 UIWidgets::PaddedEnhancementCheckbox("All Dogs are Richard", CVAR_ENHANCEMENT("AllDogsRichard"), true, false);
                 UIWidgets::Tooltip("All dogs can be traded in and will count as Richard.");
@@ -1031,6 +1208,10 @@ void DrawEnhancementsMenu() {
 
             UIWidgets::EnhancementCheckbox("Visual Stone of Agony", CVAR_ENHANCEMENT("VisualAgony"));
             UIWidgets::Tooltip("Displays an icon and plays a sound when Stone of Agony should be activated, for those without rumble");
+            static const char* cursorOnAnySlot[3] = { "Only in Rando", "Always", "Never" };
+            UIWidgets::PaddedText("Allow the cursor to be on any slot", true, false);
+            UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("PauseAnyCursor"), cursorOnAnySlot, PAUSE_ANY_CURSOR_RANDO_ONLY);
+            UIWidgets::Tooltip("Allows the cursor on the pause menu to be over any slot. Sometimes required in rando to select certain items.");
             UIWidgets::PaddedEnhancementCheckbox("Assignable Tunics and Boots", CVAR_ENHANCEMENT("AssignableTunicsAndBoots"), true, false);
             UIWidgets::Tooltip("Allows equipping the tunic and boots to c-buttons");
             UIWidgets::PaddedEnhancementCheckbox("Equipment Toggle", CVAR_ENHANCEMENT("EquipmentCanBeRemoved"), true, false);
@@ -1050,14 +1231,14 @@ void DrawEnhancementsMenu() {
             UIWidgets::Tooltip("Allows the Lon Lon Ranch obstacle course reward to be shared across time periods");
             UIWidgets::PaddedEnhancementCheckbox("Enable visible guard vision", CVAR_ENHANCEMENT("GuardVision"), true, false);
             UIWidgets::PaddedEnhancementCheckbox("Enable passage of time on file select", CVAR_ENHANCEMENT("TimeFlowFileSelect"), true, false);
-            UIWidgets::PaddedEnhancementCheckbox("Item counts in messages", CVAR_ENHANCEMENT("InjectItemCounts"), true, false);
-            UIWidgets::Tooltip("Injects item counts in pickup messages, like golden skulltula tokens and heart pieces");
             UIWidgets::PaddedEnhancementCheckbox("Pull grave during the day", CVAR_ENHANCEMENT("DayGravePull"), true, false);
             UIWidgets::Tooltip("Allows graves to be pulled when child during the day");
             UIWidgets::PaddedEnhancementCheckbox("Dogs follow you everywhere", CVAR_ENHANCEMENT("DogFollowsEverywhere"), true, false);
             UIWidgets::Tooltip("Allows dogs to follow you anywhere you go, even if you leave the market");
             UIWidgets::PaddedEnhancementCheckbox("Don't require input for Credits sequence", CVAR_ENHANCEMENT("NoInputForCredits"), true, false);
             UIWidgets::Tooltip("Removes the input requirement on textboxes after defeating Ganon, allowing Credits sequence to continue to progress");
+            UIWidgets::PaddedEnhancementCheckbox("Answer Navi Prompt with L Button", CVAR_ENHANCEMENT("NaviOnL"), true, false);
+            UIWidgets::Tooltip("Speak to Navi with L but enter first-person camera with C-Up");
 
             // Blue Fire Arrows
             bool forceEnableBlueFireArrows = IS_RANDO &&
@@ -1192,6 +1373,15 @@ void DrawEnhancementsMenu() {
                 "- Blue Warps\n"
                 "- Darunia\n"
                 "- Gold Skulltulas");
+            if (UIWidgets::PaddedEnhancementCheckbox("Show Age-Dependent Equipment", CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), true,
+                                                     false)) {
+                UpdatePatchHand();
+            }
+            UIWidgets::Tooltip("Makes all equipment visible, regardless of Age.");
+            if (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) == 1) {
+				UIWidgets::PaddedEnhancementCheckbox("Scale Adult Equipment as Child", CVAR_ENHANCEMENT("ScaleAdultEquipmentAsChild"), true, false);
+				UIWidgets::Tooltip("Scales all of the Adult Equipment, as well and moving some a bit, to fit on Child Link Better. May not work properly with some mods.");
+			}
             UIWidgets::PaddedEnhancementCheckbox("N64 Mode", CVAR_LOW_RES_MODE, true, false);
             UIWidgets::Tooltip("Sets aspect ratio to 4:3 and lowers resolution to 240p, the N64's native resolution");
             UIWidgets::PaddedEnhancementCheckbox("Glitch line-up tick", CVAR_ENHANCEMENT("DrawLineupTick"), true, false);
@@ -1240,7 +1430,8 @@ void DrawEnhancementsMenu() {
             UIWidgets::Tooltip("Removes the dungeon entrance icon on the top-left corner of the screen when no dungeon is present on the current map");
             UIWidgets::PaddedEnhancementCheckbox("Fix Two Handed idle animations", CVAR_ENHANCEMENT("TwoHandedIdle"), true, false);
             UIWidgets::Tooltip("Re-enables the two-handed idle animation, a seemingly finished animation that was disabled on accident in the original game");
-            UIWidgets::PaddedEnhancementCheckbox("Fix the Gravedigging Tour Glitch", CVAR_ENHANCEMENT("GravediggingTourFix"), true, false);
+            UIWidgets::PaddedEnhancementCheckbox("Fix the Gravedigging Tour Glitch", CVAR_ENHANCEMENT("GravediggingTourFix"), true, false, SaveManager::Instance->IsRandoFile(),
+                                                        "This setting is always enabled in randomizer files", UIWidgets::CheckboxGraphics::Checkmark);
             UIWidgets::Tooltip("Fixes a bug where the Gravedigging Tour Heart Piece disappears if the area reloads");
             UIWidgets::PaddedEnhancementCheckbox("Fix Deku Nut upgrade", CVAR_ENHANCEMENT("DekuNutUpgradeFix"), true, false);
             UIWidgets::Tooltip("Prevents the Forest Stage Deku Nut upgrade from becoming unobtainable after receiving the Poacher's Saw");
@@ -1296,6 +1487,10 @@ void DrawEnhancementsMenu() {
                 "This will lower them, making activating them easier");
             UIWidgets::PaddedEnhancementCheckbox("Fix Zora hint dialogue", CVAR_ENHANCEMENT("FixZoraHintDialogue"), true, false);
             UIWidgets::Tooltip("Fixes one Zora's dialogue giving a hint about bringing Ruto's Letter to King Zora to properly occur before moving King Zora rather than after");
+            if (UIWidgets::PaddedEnhancementCheckbox("Fix hand holding Hammer", "gEnhancements.FixHammerHand", true, false)) {
+                UpdatePatchHand();
+            }
+            UIWidgets::Tooltip("Fixes Adult Link have a backwards left hand when holding the Megaton Hammer.");
 
             ImGui::EndMenu();
         }
@@ -1322,6 +1517,8 @@ void DrawEnhancementsMenu() {
             UIWidgets::Tooltip("Restore a bug from NTSC 1.0 that allows bypassing Bongo Bongo's intro cutscene to quickly kill him");
             UIWidgets::PaddedEnhancementCheckbox("Original RBA Values", CVAR_ENHANCEMENT("RestoreRBAValues"), true, false);
             UIWidgets::Tooltip("Restores the original outcomes when performing Reverse Bottle Adventure.");
+            UIWidgets::PaddedEnhancementCheckbox("Early Eyeball Frog", CVAR_ENHANCEMENT("EarlyEyeballFrog"), true, false);
+            UIWidgets::Tooltip("Restores a bug from NTSC 1.0/1.1 that allows you to obtain the eyeball frog from King Zora instead of the Zora Tunic by holding shield.");
 
             ImGui::EndMenu();
         }
@@ -1346,13 +1543,43 @@ void DrawEnhancementsMenu() {
             );
 
             UIWidgets::PaddedText("Enemy Randomizer", true, false);
-            UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("RandomizedEnemies"), enemyRandomizerModes, ENEMY_RANDOMIZER_OFF);
+            if (UIWidgets::EnhancementCombobox(CVAR_ENHANCEMENT("RandomizedEnemies"), enemyRandomizerModes, ENEMY_RANDOMIZER_OFF)) {
+                GetSelectedEnemies();
+            }
             UIWidgets::Tooltip(
                 "Replaces fixed enemies throughout the game with a random enemy. Bosses, mini-bosses and a few specific regular enemies are excluded.\n"
                 "Enemies that need more than Deku Nuts + either Deku Sticks or a sword to kill are excluded from spawning in \"clear enemy\" rooms.\n\n"
                 "- Random: Enemies are randomized every time you load a room\n"
                 "- Random (Seeded): Enemies are randomized based on the current randomizer seed/file\n"
             );
+            if (CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) == ENEMY_RANDOMIZER_RANDOM) {
+                ImGui::Separator();
+                if (ImGui::BeginMenu("Enemy List")) {
+                    UIWidgets::PaddedEnhancementCheckbox("Select All Enemies", CVAR_ENHANCEMENT("RandomizedEnemyList.All"), true, false);
+                    bool disabledEnemyList = CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemyList.All"), 0);
+                    ImGui::Separator();
+
+                    ImGui::BeginDisabled(CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemyList.All"), 0));
+
+                    ImGui::BeginTable("Enemy Table", 2);
+                    ImGui::TableNextColumn();
+                    for (int i = 0; i < RANDOMIZED_ENEMY_SPAWN_TABLE_SIZE; i++) {
+                        if (UIWidgets::PaddedEnhancementCheckbox(enemyNameList[i], enemyCVarList[i], true, false, disabledEnemyList, 
+                            "These options are disabled because \"Select All Enemies\" is enabled.",
+                            UIWidgets::CheckboxGraphics::Checkmark)) { 
+                            GetSelectedEnemies();
+                        }
+                        if (i == RANDOMIZED_ENEMY_SPAWN_TABLE_SIZE / 2) {
+                            ImGui::TableNextColumn();
+                        }
+                    }
+                    ImGui::EndTable();
+                    ImGui::EndDisabled();
+
+                    ImGui::EndMenu();
+                }
+            };
+            ImGui::Separator();
 
             UIWidgets::PaddedEnhancementCheckbox("Randomized Enemy Sizes", CVAR_ENHANCEMENT("RandomizedEnemySizes"), true, false);
             UIWidgets::Tooltip("Enemies and Bosses spawn with random sizes.");
@@ -1454,6 +1681,12 @@ void DrawEnhancementsMenu() {
         if (mGameplayStatsWindow) {
             if (ImGui::Button(GetWindowButtonText("Gameplay Stats", CVarGetInteger(CVAR_WINDOW("GameplayStats"), 0)).c_str(), ImVec2(-1.0f, 0.0f))) {
                 mGameplayStatsWindow->ToggleVisibility();
+            }
+        }
+
+        if (mTimeSplitWindow) {
+            if (ImGui::Button(GetWindowButtonText("Time Splits", CVarGetInteger(CVAR_WINDOW("TimeSplitEnabled"), 0)).c_str(), ImVec2(-1.0f, 0.0f))) {
+                mTimeSplitWindow->ToggleVisibility();
             }
         }
         ImGui::PopStyleVar(3);
@@ -1661,6 +1894,7 @@ void DrawCheatsMenu() {
 extern std::shared_ptr<Ship::GuiWindow> mStatsWindow;
 extern std::shared_ptr<Ship::GuiWindow> mConsoleWindow;
 extern std::shared_ptr<SaveEditorWindow> mSaveEditorWindow;
+extern std::shared_ptr<HookDebuggerWindow> mHookDebuggerWindow;
 extern std::shared_ptr<ColViewerWindow> mColViewerWindow;
 extern std::shared_ptr<ActorViewerWindow> mActorViewerWindow;
 extern std::shared_ptr<DLViewerWindow> mDLViewerWindow;
@@ -1744,6 +1978,12 @@ void DrawDeveloperToolsMenu() {
             }
         }
         UIWidgets::Spacer(0);
+        if (mHookDebuggerWindow) {
+            if (ImGui::Button(GetWindowButtonText("Hook Debugger", CVarGetInteger(CVAR_WINDOW("HookDebugger"), 0)).c_str(), ImVec2(-1.0f, 0.0f))) {
+                mHookDebuggerWindow->ToggleVisibility();
+            }
+        }
+        UIWidgets::Spacer(0);
         if (mColViewerWindow) {
             if (ImGui::Button(GetWindowButtonText("Collision Viewer", CVarGetInteger(CVAR_WINDOW("CollisionViewer"), 0)).c_str(), ImVec2(-1.0f, 0.0f))) {
                 mColViewerWindow->ToggleVisibility();
@@ -1773,6 +2013,12 @@ void DrawDeveloperToolsMenu() {
                 mMessageViewerWindow->ToggleVisibility();
             }
         }
+        UIWidgets::Spacer(0);
+        if (mGfxDebuggerWindow) {
+            if (ImGui::Button(GetWindowButtonText("Gfx Debugger", CVarGetInteger(CVAR_WINDOW("GfxDebugger"), 0)).c_str(), ImVec2(-1.0f, 0.0f))) {
+                mGfxDebuggerWindow->ToggleVisibility();
+            }
+        }
 
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(1);
@@ -1783,132 +2029,11 @@ void DrawDeveloperToolsMenu() {
     }
 }
 
-bool isStringEmpty(std::string str) {
-    // Remove spaces at the beginning of the string
-    std::string::size_type start = str.find_first_not_of(' ');
-    // Remove spaces at the end of the string
-    std::string::size_type end = str.find_last_not_of(' ');
-
-    // Check if the string is empty after stripping spaces
-    if (start == std::string::npos || end == std::string::npos)
-        return true; // The string is empty
-    else
-        return false; // The string is not empty
-}
-
 #ifdef ENABLE_REMOTE_CONTROL
 void DrawRemoteControlMenu() {
     if (ImGui::BeginMenu("Network")) {
-        static std::string ip = CVarGetString(CVAR_REMOTE("IP"), "127.0.0.1");
-        static uint16_t port = CVarGetInteger(CVAR_REMOTE("Port"), 43384);
-        bool isFormValid = !isStringEmpty(CVarGetString(CVAR_REMOTE("IP"), "127.0.0.1")) && port > 1024 && port < 65535;
-
-        const char* remoteOptions[2] = { "Sail", "Crowd Control"};
-
-        ImGui::BeginDisabled(GameInteractor::Instance->isRemoteInteractorEnabled);
-        ImGui::Text("Remote Interaction Scheme");
-        if (UIWidgets::EnhancementCombobox(CVAR_REMOTE("Scheme"), remoteOptions, GI_SCHEME_SAIL)) {
-            auto scheme = CVarGetInteger(CVAR_REMOTE("Scheme"), GI_SCHEME_SAIL);
-            switch (scheme) {
-                case GI_SCHEME_SAIL:
-                case GI_SCHEME_CROWD_CONTROL:
-                    CVarSetString(CVAR_REMOTE("IP"), "127.0.0.1");
-                    CVarSetInteger(CVAR_REMOTE("Port"), 43384);
-                    ip = "127.0.0.1";
-                    port = 43384;
-                    break;
-            }
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
-        }
-        switch (CVarGetInteger(CVAR_REMOTE("Scheme"), GI_SCHEME_SAIL)) {
-            case GI_SCHEME_SAIL:
-                UIWidgets::InsertHelpHoverText(
-                    "Sail is a networking protocol designed to facilitate remote "
-                    "control of the Ship of Harkinian client. It is intended to "
-                    "be utilized alongside a Sail server, for which we provide a "
-                    "few straightforward implementations on our GitHub. The current "
-                    "implementations available allow integration with Twitch chat "
-                    "and SAMMI Bot, feel free to contribute your own!\n"
-                    "\n"
-                    "Click the question mark to copy the link to the Sail Github "
-                    "page to your clipboard."
-                );
-                if (ImGui::IsItemClicked()) {
-                    ImGui::SetClipboardText("https://github.com/HarbourMasters/sail");
-                }
-                break;
-            case GI_SCHEME_CROWD_CONTROL:
-                UIWidgets::InsertHelpHoverText(
-                    "Crowd Control is a platform that allows viewers to interact "
-                    "with a streamer's game in real time.\n"
-                    "\n"
-                    "Click the question mark to copy the link to the Crowd Control "
-                    "website to your clipboard."
-                );
-                if (ImGui::IsItemClicked()) {
-                    ImGui::SetClipboardText("https://crowdcontrol.live");
-                }
-                break;
-        }
-
-        ImGui::Text("Remote IP & Port");
-        if (ImGui::InputText("##gRemote.IP", (char*)ip.c_str(), ip.capacity() + 1)) {
-            CVarSetString(CVAR_REMOTE("IP"), ip.c_str());
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
-        }
-
-        ImGui::SameLine();
-        ImGui::PushItemWidth(ImGui::GetFontSize() * 5);
-        if (ImGui::InputScalar("##gRemote.Port", ImGuiDataType_U16, &port)) {
-            CVarSetInteger(CVAR_REMOTE("Port"), port);
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
-        }
-
-        ImGui::PopItemWidth();
-        ImGui::EndDisabled();
-
-        ImGui::Spacing();
-
-        ImGui::BeginDisabled(!isFormValid);
-        const char* buttonLabel = GameInteractor::Instance->isRemoteInteractorEnabled ? "Disable" : "Enable";
-        if (ImGui::Button(buttonLabel, ImVec2(-1.0f, 0.0f))) {
-            if (GameInteractor::Instance->isRemoteInteractorEnabled) {
-                CVarClear(CVAR_REMOTE("Enabled"));
-                CVarClear(CVAR_REMOTE("CrowdControl"));
-                Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
-                switch (CVarGetInteger(CVAR_REMOTE("Scheme"), GI_SCHEME_SAIL)) {
-                    case GI_SCHEME_SAIL:
-                        GameInteractorSail::Instance->Disable();
-                        break;
-                    case GI_SCHEME_CROWD_CONTROL:
-                        CrowdControl::Instance->Disable();
-                        break;
-                }
-            } else {
-                CVarSetInteger(CVAR_REMOTE("Enabled"), 1);
-                Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
-                switch (CVarGetInteger(CVAR_REMOTE("Scheme"), GI_SCHEME_SAIL)) {
-                    case GI_SCHEME_SAIL:
-                        GameInteractorSail::Instance->Enable();
-                        break;
-                    case GI_SCHEME_CROWD_CONTROL:
-                        CrowdControl::Instance->Enable();
-                        break;
-                }
-            }
-        }
-        ImGui::EndDisabled();
-
-        if (GameInteractor::Instance->isRemoteInteractorEnabled) {
-            ImGui::Spacing();
-            if (GameInteractor::Instance->isRemoteInteractorConnected) {
-                ImGui::Text("Connected");
-            } else {
-                ImGui::Text("Connecting...");
-            }
-        }
-
-        ImGui::Dummy(ImVec2(0.0f, 0.0f));
+        Sail::Instance->DrawMenu();
+        CrowdControl::Instance->DrawMenu();
         ImGui::EndMenu();
     }
 }
@@ -1918,20 +2043,38 @@ extern std::shared_ptr<RandomizerSettingsWindow> mRandomizerSettingsWindow;
 extern std::shared_ptr<ItemTrackerWindow> mItemTrackerWindow;
 extern std::shared_ptr<ItemTrackerSettingsWindow> mItemTrackerSettingsWindow;
 extern std::shared_ptr<EntranceTrackerWindow> mEntranceTrackerWindow;
+extern std::shared_ptr<EntranceTrackerSettingsWindow> mEntranceTrackerSettingsWindow;
 extern std::shared_ptr<CheckTracker::CheckTrackerWindow> mCheckTrackerWindow;
 extern std::shared_ptr<CheckTracker::CheckTrackerSettingsWindow> mCheckTrackerSettingsWindow;
+extern "C" u8 Randomizer_GetSettingValue(RandomizerSettingKey randoSettingKey);
 
 void DrawRandomizerMenu() {
     if (ImGui::BeginMenu("Randomizer")) {
+        UIWidgets::EnhancementCheckbox("Plando Mode", CVAR_GENERAL("PlandoMode"));
+        UIWidgets::Tooltip(
+            "When dropping a spoiler file on the game window, parse the full spoiler file instead of just the "
+            "necessary "
+            "parts to regenerate a seed.\n\nKeep in mind if you do this, all custom text will only be available in the "
+            "language present in the spoilerfile. You can use this to edit a previously generated spoilerfile that has "
+            "been edited with custom hint text and item locations. May be useful for debugging.");
+        UIWidgets::PaddedSeparator();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 6.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.38f, 0.56f, 1.0f));
+
     #ifdef __WIIU__
         static ImVec2 buttonSize(200.0f * 2.0f, 0.0f);
+        static ImVec2 buttonWithOptionsSize(170.0f * 2.0f, 0.0f);
+        static ImVec2 optionsButtonSize(25.0f * 2.0f, 0.0f);
+        static float separationToOptionsButton = 5.0f * 2.0f;
     #else
         static ImVec2 buttonSize(200.0f, 0.0f);
+        static ImVec2 buttonWithOptionsSize(170.0f, 0.0f);
+        static ImVec2 optionsButtonSize(25.0f, 0.0f);
+        static float separationToOptionsButton = 5.0f;
     #endif
+
         if (mRandomizerSettingsWindow) {
             if (ImGui::Button(GetWindowButtonText("Randomizer Settings", CVarGetInteger(CVAR_WINDOW("RandomizerSettings"), 0)).c_str(), buttonSize)) {
                 mRandomizerSettingsWindow->ToggleVisibility();
@@ -1939,36 +2082,64 @@ void DrawRandomizerMenu() {
         }
 
         UIWidgets::Spacer(0);
+
         if (mItemTrackerWindow) {
-            if (ImGui::Button(GetWindowButtonText("Item Tracker", CVarGetInteger(CVAR_WINDOW("ItemTracker"), 0)).c_str(), buttonSize)) {
+            if (ImGui::Button(GetWindowButtonText("Item Tracker", CVarGetInteger(CVAR_WINDOW("ItemTracker"), 0)).c_str(), buttonWithOptionsSize)) {
                 mItemTrackerWindow->ToggleVisibility();
             }
         }
 
-        UIWidgets::Spacer(0);
+        ImGui::SameLine(0, 0);
+        ImVec2 cursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos(ImVec2(cursor.x + separationToOptionsButton, cursor.y));
+
         if (mItemTrackerSettingsWindow) {
-            if (ImGui::Button(GetWindowButtonText("Item Tracker Settings", CVarGetInteger(CVAR_WINDOW("ItemTrackerSettings"), 0)).c_str(), buttonSize)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(FA_ICON_BUTTON_FRAME_PADDING_X(ICON_FA_COG), 6.0f));
+            if (ImGui::Button(ICON_FA_COG "##ItemTrackerSettings", optionsButtonSize)) {
                 mItemTrackerSettingsWindow->ToggleVisibility();
             }
+            ImGui::PopStyleVar();
         }
+
         UIWidgets::Spacer(0);
         if (mEntranceTrackerWindow) {
-            if (ImGui::Button(GetWindowButtonText("Entrance Tracker", CVarGetInteger(CVAR_WINDOW("EntranceTracker"), 0)).c_str(), buttonSize)) {
+            if (ImGui::Button(GetWindowButtonText("Entrance Tracker", CVarGetInteger(CVAR_WINDOW("EntranceTracker"), 0)).c_str(), buttonWithOptionsSize)) {
                 mEntranceTrackerWindow->ToggleVisibility();
             }
         }
+
+        ImGui::SameLine(0, 0);
+        cursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos(ImVec2(cursor.x + separationToOptionsButton, cursor.y));
+
+        if (mEntranceTrackerSettingsWindow) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(FA_ICON_BUTTON_FRAME_PADDING_X(ICON_FA_COG), 6.0f));
+            if (ImGui::Button(ICON_FA_COG "##EntranceTrackerSettings", optionsButtonSize)) {
+                mEntranceTrackerSettingsWindow->ToggleVisibility();
+            }
+            ImGui::PopStyleVar();
+        }
+
         UIWidgets::Spacer(0);
+
         if (mCheckTrackerWindow) {
-            if (ImGui::Button(GetWindowButtonText("Check Tracker", CVarGetInteger(CVAR_WINDOW("CheckTracker"), 0)).c_str(), buttonSize)) {
+            if (ImGui::Button(GetWindowButtonText("Check Tracker", CVarGetInteger(CVAR_WINDOW("CheckTracker"), 0)).c_str(), buttonWithOptionsSize)) {
                 mCheckTrackerWindow->ToggleVisibility();
             }
         }
-        UIWidgets::Spacer(0);
+
+        ImGui::SameLine(0, 0);
+        cursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos(ImVec2(cursor.x + separationToOptionsButton, cursor.y));
+
         if (mCheckTrackerSettingsWindow) {
-            if (ImGui::Button(GetWindowButtonText("Check Tracker Settings", CVarGetInteger(CVAR_WINDOW("CheckTrackerSettings"), 0)).c_str(), buttonSize)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(FA_ICON_BUTTON_FRAME_PADDING_X(ICON_FA_COG), 6.0f));
+            if (ImGui::Button(ICON_FA_COG "##CheckTrackerSettings", optionsButtonSize)) {
                 mCheckTrackerSettingsWindow->ToggleVisibility();
             }
+            ImGui::PopStyleVar();
         }
+
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(1);
 
@@ -2002,7 +2173,7 @@ void DrawRandomizerMenu() {
                 disableKeyColors = false;
             }
 
-            static const char* disableKeyColorsText = 
+            static const char* disableKeyColorsText =
                 "This setting is disabled because a savefile is loaded without any key\n"
                 "shuffle settings set to \"Any Dungeon\", \"Overworld\" or \"Anywhere\"";
 
@@ -2011,7 +2182,23 @@ void DrawRandomizerMenu() {
             UIWidgets::Tooltip(
                 "Matches the color of small keys and boss keys to the dungeon they belong to. "
                 "This helps identify keys from afar and adds a little bit of flair.\n\nThis only "
-                "applies to seeds with keys and boss keys shuffled to Any Dungeon, Overworld, or Anywhere.");
+                "applies to seeds with keys and boss keys shuffled to \"Any Dungeon\", \"Overworld\", or \"Anywhere\".");
+
+            bool disableCompassColors = !DUNGEON_ITEMS_CAN_BE_OUTSIDE_DUNGEON(RSK_SHUFFLE_MAPANDCOMPASS);
+
+            static const char* disableCompassColorsText =
+                "This setting is disabled because a savefile is loaded without the compass\n"
+                "shuffle settings set to \"Any Dungeon\", \"Overworld\" or \"Anywhere\"";
+
+            if (UIWidgets::PaddedEnhancementCheckbox("Compass Colors Match Dungeon", CVAR_RANDOMIZER_ENHANCEMENT("MatchCompassColors"), true, false,
+                                                  disableCompassColors, disableCompassColorsText, UIWidgets::CheckboxGraphics::Cross, true)) {
+                PatchCompasses();
+            }
+            UIWidgets::Tooltip(
+                "Matches the color of compasses to the dungeon they belong to. "
+                "This helps identify compasses from afar and adds a little bit of flair.\n\nThis only "
+                "applies to seeds with compasses shuffled to \"Any Dungeon\", \"Overworld\", or \"Anywhere\".");
+
             UIWidgets::PaddedEnhancementCheckbox("Quest Item Fanfares", CVAR_RANDOMIZER_ENHANCEMENT("QuestItemFanfares"), true, false);
             UIWidgets::Tooltip(
                 "Play unique fanfares when obtaining quest items "
