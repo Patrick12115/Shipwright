@@ -18,8 +18,6 @@ void UpdateHyperBossesState();
 void InitMods();
 void UpdatePatchHand(); 
 void UpdatePatchCustomEquipmentDlists();
-void PatchOrUnpatch(const char* resource, const char* gfx, const char* dlist1, const char* dlist2, const char* dlist3,
-                    const char* alternateDL);
 
 #ifdef __cplusplus
 }
