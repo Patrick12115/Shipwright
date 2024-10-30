@@ -954,15 +954,15 @@ void UpdatePatchCustomEquipmentDlists() {
     PatchOrUnpatch(gLinkChildLeftFistAndBoomerangNearDL, gCustomBoomerangDL, "customBoomerang1", "customBoomerang2", "customBoomerang3", gLinkChildLeftFistNearDL);
     PatchOrUnpatch(gLinkChildRightHandHoldingSlingshotNearDL, gCustomSlingshotDL, "customSlingshot1", "customSlingshot2", "customSlingshot3", gLinkChildRightHandClosedNearDL);
     PatchOrUnpatch(gLinkChildRightArmStretchedSlingshotDL, gCustomSlingshotDL, "customSlingshotFPS1", "customSlingshotFPS2", "customSlingshotFPS3", gCustomChildFPSHandDL);
-    if (LINK_IS_CHILD && CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) { //hand stuff doesnt seem to work and need to chance test name
+    if (LINK_IS_CHILD && CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) { 
         PatchOrUnpatch(gCustomAdultFPSHandDL, gCustomChildFPSHandDL, "patchChildFPSHand1", "patchChildFPSHand2", NULL, NULL);
-        PatchOrUnpatch(gLinkAdultRightHandClosedNearDL, gLinkChildRightHandClosedNearDL, "customTest1", "customTest2", NULL, NULL);
-        PatchOrUnpatch(gLinkAdultLeftHandClosedNearDL, gLinkChildLeftFistNearDL, "customTest11", "customTest22", NULL, NULL);
+        PatchOrUnpatch(gLinkAdultRightHandClosedNearDL, gLinkChildRightHandClosedNearDL, "customChildRightHand1", "customChildRightHand2", NULL, NULL);
+        PatchOrUnpatch(gLinkAdultLeftHandClosedNearDL, gLinkChildLeftFistNearDL, "customChildLeftHand1", "customChildLeftHand2", NULL, NULL);
     }
     if (LINK_IS_ADULT && CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
         PatchOrUnpatch(gCustomChildFPSHandDL, gCustomAdultFPSHandDL, "patchAdultFPSHand1", "patchAdultFPSHand2", NULL, NULL);
-        PatchOrUnpatch(gLinkChildRightHandClosedNearDL, gLinkAdultRightHandClosedNearDL, "customTest3", "customTest4", NULL, NULL);
-        PatchOrUnpatch(gLinkChildLeftFistNearDL, gLinkAdultLeftHandClosedNearDL, "customTest5", "customTest6", NULL, NULL);
+        PatchOrUnpatch(gLinkChildRightHandClosedNearDL, gLinkAdultRightHandClosedNearDL, "customAdultRightHand1", "customAdultRightHand2", NULL, NULL);
+        PatchOrUnpatch(gLinkChildLeftFistNearDL, gLinkAdultLeftHandClosedNearDL, "customAdultLeftHand1", "customAdultLeftHand2", NULL, NULL);
     }
     //Below handles Adult Link not having a sword
     if (gSaveContext.equips.buttonItems[0] == ITEM_NONE) {
@@ -972,8 +972,6 @@ void UpdatePatchCustomEquipmentDlists() {
         PatchOrUnpatch(gLinkAdultHylianShieldAndSheathNearDL, gCustomHylianShieldOnBackDL, "customHylianShieldNoSheath1", "customHylianShieldNoSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkAdultMirrorShieldSwordAndSheathNearDL, gCustomMirrorShieldOnBackDL, "customMirrorShieldNoSword1", "customMirrorShieldNoSword2", NULL, NULL);
         PatchOrUnpatch(gLinkAdultMirrorShieldAndSheathNearDL, gCustomMirrorShieldOnBackDL, "customMirrorShieldNoSheath1", "customMirrorShieldNoSheath2", NULL, NULL);
-    }
-    if (gSaveContext.equips.buttonItems[0] == ITEM_NONE) { //maybe combine these
         ResourceMgr_UnpatchGfxByName(gLinkAdultMasterSwordAndSheathNearDL, "customMasterSwordSheath1");
         ResourceMgr_UnpatchGfxByName(gLinkAdultMasterSwordAndSheathNearDL, "customMasterSwordSheath2");
     } else {
