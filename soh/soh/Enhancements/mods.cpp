@@ -872,7 +872,7 @@ void UpdatePatchCustomEquipmentDlists() {
         PatchOrUnpatch(gLinkAdultMirrorShieldAndSheathNearDL, gCustomLongswordSheathDL, "customMirrorShieldSheath1", "customMirrorShieldSheath2", "customMirrorShieldSheath3", gCustomMirrorShieldOnBackDL);
     }
     if (gSaveContext.equips.buttonItems[0] == ITEM_SWORD_BGS && (gSaveContext.bgsFlag == false)) {
-        PatchOrUnpatch(gLinkAdultLeftHandHoldingBgsNearDL, gCustomBreakableLongswordDL, "customGN1", "customGN2", "customGN3", gLinkAdultLeftHandClosedNearDL);
+        PatchOrUnpatch(gLinkAdultLeftHandHoldingBgsNearDL, gCustomBreakableLongswordDL, "customGK1", "customGK2", "customGK3", gLinkAdultLeftHandClosedNearDL);
         PatchOrUnpatch(gLinkChildSheathNearDL, gCustomBreakableLongswordSheathDL, "customKokiriSheath1", "customKokiriSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildSwordAndSheathNearDL, gCustomBreakableLongswordInSheathDL, "customKokiriSwordSheath1", "customKokiriSwordSheath2", NULL, NULL);
         PatchOrUnpatch(gLinkChildDekuShieldSwordAndSheathNearDL, gCustomBreakableLongswordInSheathDL, "customDekuShieldSword1", "customDekuShieldSword2", "customDekuShieldSword3", gCustomDekuShieldOnBackDL);
