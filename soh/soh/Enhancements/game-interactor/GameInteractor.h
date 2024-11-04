@@ -54,13 +54,13 @@ typedef enum {
 } GIColors;
 
 typedef enum {
-    /*      */ GI_TP_DEST_LINKSHOUSE = ENTR_LINKS_HOUSE_0,
-    /*      */ GI_TP_DEST_MINUET = ENTR_SACRED_FOREST_MEADOW_2,
-    /*      */ GI_TP_DEST_BOLERO = ENTR_DEATH_MOUNTAIN_CRATER_4,
-    /*      */ GI_TP_DEST_SERENADE = ENTR_LAKE_HYLIA_8,
-    /*      */ GI_TP_DEST_REQUIEM = ENTR_DESERT_COLOSSUS_5,
-    /*      */ GI_TP_DEST_NOCTURNE = ENTR_GRAVEYARD_7,
-    /*      */ GI_TP_DEST_PRELUDE = ENTR_TEMPLE_OF_TIME_7,
+    /*      */ GI_TP_DEST_LINKSHOUSE = ENTR_LINKS_HOUSE_CHILD_SPAWN,
+    /*      */ GI_TP_DEST_MINUET = ENTR_SACRED_FOREST_MEADOW_WARP_PAD,
+    /*      */ GI_TP_DEST_BOLERO = ENTR_DEATH_MOUNTAIN_CRATER_WARP_PAD,
+    /*      */ GI_TP_DEST_SERENADE = ENTR_LAKE_HYLIA_WARP_PAD,
+    /*      */ GI_TP_DEST_REQUIEM = ENTR_DESERT_COLOSSUS_WARP_PAD,
+    /*      */ GI_TP_DEST_NOCTURNE = ENTR_GRAVEYARD_WARP_PAD,
+    /*      */ GI_TP_DEST_PRELUDE = ENTR_TEMPLE_OF_TIME_WARP_PAD,
 } GITeleportDestinations;
 
 typedef enum {
@@ -76,6 +76,7 @@ typedef enum {
     VB_MIDO_SPAWN,
     // Opt: *EnMd
     // Vanilla condition: EnMd->interactInfo.talkState == NPC_TALK_STATE_ACTION
+    // Note: When overriding this, ensure you're not in the intro cutscene as Mido's path has not been loaded
     VB_MOVE_MIDO_IN_KOKIRI_FOREST,
     // Opt: *EnMd
     // Vanilla condition: CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)
@@ -117,7 +118,7 @@ typedef enum {
     /* Vanilla Condition: 
     ```
         LINK_IS_ADULT &&
-        gSaveContext.entranceIndex == ENTR_KAKARIKO_VILLAGE_0 &&
+        gSaveContext.entranceIndex == ENTR_KAKARIKO_VILLAGE_FRONT_GATE &&
         Flags_GetEventChkInf(EVENTCHKINF_USED_FOREST_TEMPLE_BLUE_WARP) &&
         Flags_GetEventChkInf(EVENTCHKINF_USED_FIRE_TEMPLE_BLUE_WARP) &&
         Flags_GetEventChkInf(EVENTCHKINF_USED_WATER_TEMPLE_BLUE_WARP) &&
@@ -286,6 +287,9 @@ typedef enum {
     VB_GANON_HEAL_BEFORE_FIGHT,
     VB_FREEZE_LINK_FOR_BLOCK_THROW,
     VB_MOVE_THROWN_ACTOR,
+    // Opt: *EnFr
+    // Vanilla condition: this->reward == GI_NONE
+    VB_FROGS_GO_TO_IDLE,
 
     /*** Play Cutscenes ***/
 
@@ -378,8 +382,6 @@ typedef enum {
     VB_GIVE_ITEM_FROM_MEDIGORON,
     // Opt: *EnMs
     VB_GIVE_ITEM_FROM_MAGIC_BEAN_SALESMAN,
-    // Opt: *EnFr
-    VB_GIVE_ITEM_FROM_FROGS,
     // Opt: *EnSkj
     VB_GIVE_ITEM_FROM_OCARINA_MEMORY_GAME,
     // Opt: *EnSkj

@@ -147,6 +147,16 @@ class Logic {
     bool ForestClearBelowBowChest = false; //a better name that covers both versions would be nice
     bool ForestOpenBossCorridor = false;
     bool ShadowTrialFirstChest = false;
+    bool MQGTGMazeSwitch = false;
+    bool MQGTGRightSideSwitch = false;
+    bool GTGPlatformSilverRupees = false;
+    bool MQJabuHolesRoomDoor = false;
+    bool JabuWestTentacle = false;
+    bool JabuNorthTentacle = false;
+    bool LoweredJabuPath = false;
+    bool MQJabuLiftRoomCow = false;
+    bool MQShadowFloorSpikeRupees = false;
+    bool ShadowShortcutBlock = false;
 
     /* --- END OF HELPERS AND LOCATION ACCESS --- */
 
@@ -160,7 +170,7 @@ class Logic {
     bool SmallKeys(RandomizerRegion dungeon, uint8_t requiredAmountGlitchless, uint8_t requiredAmountGlitched);
     bool CanDoGlitch(GlitchType glitch);
     bool CanEquipSwap(RandomizerGet itemName);
-    bool CanKillEnemy(RandomizerEnemy enemy, EnemyDistance distance = ED_CLOSE, bool wallOrFloor = true, uint8_t quantity = 1);
+    bool CanKillEnemy(RandomizerEnemy enemy, EnemyDistance distance = ED_CLOSE, bool wallOrFloor = true, uint8_t quantity = 1, bool timer = false, bool inWater = false);
     bool CanPassEnemy(RandomizerEnemy enemy, EnemyDistance distance = ED_CLOSE, bool wallOrFloor = true);
     bool CanAvoidEnemy(RandomizerEnemy enemy);
     bool CanGetEnemyDrop(RandomizerEnemy enemy, EnemyDistance distance = ED_CLOSE, bool aboveLink = false);
@@ -175,7 +185,7 @@ class Logic {
     bool HasBottle();
     bool CanJumpslashExceptHammer();
     bool CanJumpslash();
-    bool CanHitSwitch();
+    bool CanHitSwitch(EnemyDistance distance = ED_CLOSE, bool inWater = false);
     bool CanDamage();
     bool CanAttack();
     bool BombchusEnabled();
