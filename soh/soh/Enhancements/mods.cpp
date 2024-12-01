@@ -30,6 +30,7 @@ extern "C" {
 #include "functions.h"
 #include "variables.h"
 #include "functions.h"
+#include "src/overlays/actors/ovl_En_Door/z_en_door.h"
 extern SaveContext gSaveContext;
 extern PlayState* gPlayState;
 extern void Overlay_DisplayText(float duration, const char* text);
@@ -1070,6 +1071,76 @@ void RegisterRandomizedEnemySizes() {
     });
 }
 
+#define MAX_LOCKED_FOREST 5
+#define MAX_LOCKED_FIRE 8
+#define MAX_LOCKED_WATER 6
+#define MAX_LOCKED_SPIRIT 5
+#define MAX_LOCKED_SHADOW 5
+#define MAX_LOCKED_BOTTOM_OF_WELL 3
+
+#define DOOR_TYPE_MASK 0x0380
+#define SWITCH_FLAG_MASK 0x003F
+
+typedef struct {
+    std::vector<s32> DoorsVector;
+    std::set<s32> DoorsSet;
+    std::unordered_map<s32, s32> LockedDoors;
+} SceneDoor;
+
+std::unordered_map<s32, SceneDoor> SceneDoors = {
+    { SCENE_FOREST_TEMPLE, { { 63, 23615, 1087, 15423, 3135, 17471, 14465, 2111, 4159 } } },
+    { SCENE_FIRE_TEMPLE, { { -28515, -30569, 17471, 16447, 13375, 15423, 14494,  6296, 27711, 18495, 21659,
+                             19610,  28735,  22591, 23615, 5279,  7231,  -31681, 9369, 8255,  11327, 10303 } } }
+};
+
+
+void RegisterRandomLockedDoors() {
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t fileNum) {
+        for (auto& scene : SceneDoors) {
+            scene.second.LockedDoors.clear();
+            uint32_t finalSeed = scene.first + (IS_RANDO ? gSaveContext.finalSeed : gSaveContext.sohStats.fileCreatedAt);
+            Random_Init(finalSeed);
+            std::vector<s32> Flags;
+            for (auto& door : scene.second.DoorsVector) {
+                scene.second.DoorsSet.insert(door);
+
+                if ((door >> 7 & 7) == DOOR_LOCKED) {
+                    Flags.push_back(door & SWITCH_FLAG_MASK);
+                    SPDLOG_INFO("Door{}", Flags.back());
+                }
+            }
+            while (Flags.size()) {
+                s32 RandomDoor = RandomElement(scene.second.DoorsVector);
+                if (!scene.second.LockedDoors.contains(RandomDoor)) {
+                    scene.second.LockedDoors[RandomDoor] = Flags.back();
+                    Flags.pop_back();
+                }
+            }
+        }
+    });
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnActorInit>([](void* refActor) {
+        Actor* actor = static_cast<Actor*>(refActor);
+
+        if (actor->id != ACTOR_EN_DOOR) {
+            return;
+        }
+        EnDoor* doorActor = static_cast<EnDoor*>(refActor);
+        if (!SceneDoors.contains(gPlayState->sceneNum)) {
+            return;
+        }
+        s32 DoorParamsCopy = actor->params;
+        if (SceneDoors[gPlayState->sceneNum].LockedDoors.contains(actor->params)) {
+            actor->params = (actor->params & ~DOOR_TYPE_MASK) | (DOOR_LOCKED << 7);
+            actor->params &= ~SWITCH_FLAG_MASK;
+            actor->params |= (SceneDoors[gPlayState->sceneNum].LockedDoors[DoorParamsCopy] & SWITCH_FLAG_MASK);
+            doorActor->actionFunc = EnDoor_SetupType;
+        } else if (SceneDoors[gPlayState->sceneNum].DoorsSet.contains(actor->params)) {
+            actor->params = (actor->params & ~DOOR_TYPE_MASK) | (DOOR_ROOMLOAD << 7);
+            doorActor->actionFunc = EnDoor_SetupType;
+        }
+    });
+}
+
 void InitMods() {
     RegisterTTS();
     RegisterInfiniteMoney();
@@ -1099,4 +1170,5 @@ void InitMods() {
     RegisterRandomizerSheikSpawn();
     RegisterRandomizedEnemySizes();
     NameTag_RegisterHooks();
+    RegisterRandomLockedDoors();
 }
