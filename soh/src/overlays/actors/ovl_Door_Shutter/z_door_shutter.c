@@ -343,7 +343,6 @@ s32 func_809968D4(DoorShutter* this, PlayState* play) {
                 phi_v0 = 0x8000 - phi_v0;
             }
             if (ABS(phi_v0) < 0x3000) {
-                printf("Actor ID: %d, Params: %d\n", this->dyna.actor.id, this->dyna.actor.params);
                 return (temp_f2 >= 0.0f) ? 1.0f : -1.0f;
             }
         }

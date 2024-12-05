@@ -212,7 +212,6 @@ void EnDoor_Idle(EnDoor* this, PlayState* play) {
                 phi_v0 = 0x8000 - phi_v0;
             }
             if (ABS(phi_v0) < 0x3000) {
-                printf("Actor ID: %d, Params: %d\n", this->actor.id, this->actor.params);
                 if (this->lockTimer != 0) {
                     if (gSaveContext.inventory.dungeonKeys[gSaveContext.mapIndex] <= 0) {
                         Player* player2 = GET_PLAYER(play);
