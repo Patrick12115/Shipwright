@@ -328,6 +328,9 @@ OTRGlobals::OTRGlobals() {
     defaultFontLargest = CreateDefaultFontWithSize(20.0f);
     ScaleImGui();
 
+    LUS::Context::GetInstance()->GetLogger()->set_level(spdlog::level::info);
+    LUS::Context::GetInstance()->GetLogger()->set_pattern("[%H:%M:%S.%e] [%s:%#] [%l] %v");
+
     // Move the camera strings from read only memory onto the heap (writable memory)
     // This is in OTRGlobals right now because this is a place that will only ever be run once at the beginning of startup.
     // We should probably find some code in db_camera that does initialization and only run once, and then dealloc on deinitialization.

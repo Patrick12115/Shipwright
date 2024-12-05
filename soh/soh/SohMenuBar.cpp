@@ -1219,6 +1219,9 @@ void DrawEnhancementsMenu() {
                 }
             }
 
+            UIWidgets::PaddedEnhancementCheckbox("Randomize Locked Doors", "gRandomLockedDoors", true, false);
+            UIWidgets::Tooltip("**REQUIRED TO BE ON BEFORE GAME LOAD** Shuffles which doors are locked within dungeons.");
+
             ImGui::EndMenu();
         }
 
