@@ -69,6 +69,8 @@ class Context {
     bool IsSpoilerLoaded() const;
     void SetSpoilerLoaded(bool spoilerLoaded = true);
 
+    RandomizerGet GetLooksLikeForCheck(RandomizerCheck rc) const;
+
     /**
      * @brief Reset all RandomizerTrick keys.
      */

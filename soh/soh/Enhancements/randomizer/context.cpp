@@ -381,6 +381,13 @@ GetItemEntry Context::GetArchipelagoGIEntry() {
     return itemEntry;
 }
 
+RandomizerGet Context::GetLooksLikeForCheck(RandomizerCheck rc) const {
+    if (overrides.contains(rc)) {
+        return overrides.at(rc).LooksLike();
+    }
+    return RG_NONE;
+}
+
 GetItemEntry Context::GetFinalGIEntry(const RandomizerCheck rc, const bool checkObtainability,
                                       const GetItemID ogItemId) {
     const auto itemLoc = GetItemLocation(rc);

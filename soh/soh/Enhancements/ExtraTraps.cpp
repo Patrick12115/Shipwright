@@ -4,7 +4,7 @@
 #include "soh/Enhancements/randomizer/3drando/random.hpp"
 #include "soh/Notification/Notification.h"
 #include "soh/OTRGlobals.h"
-
+#include "soh/Enhancements/SkipGIAnimations.h"
 extern "C" {
 #include "variables.h"
 #include "functions.h"
@@ -426,7 +426,7 @@ void RegisterExtraTraps() {
         gSaveContext.ship.stats.count[COUNT_ICE_TRAPS]++;
         GameInteractor_ExecuteOnItemReceiveHooks(ItemTable_RetrieveEntry(MOD_RANDOMIZER, RG_ICE_TRAP));
         if (CVAR_EXTRA_TRAPS_VALUE) {
-            RollRandomTrap(gPlayState->sceneNum + player->getItemEntry.drawItemId);
+            RollRandomTrap(gPlayState->sceneNum + static_cast<uint32_t>(GetLastIceTrapCheck()));
         } else {
             GameInteractor::RawAction::FreezePlayer();
         }

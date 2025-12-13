@@ -14,6 +14,8 @@
 #include "soh/Notification/Notification.h"
 #include "soh/SaveManager.h"
 #include "soh/Network/Archipelago/ArchipelagoConsoleWindow.h"
+#include "soh/frame_interpolation.h"
+#include "soh/Enhancements/SkipGIAnimations.h"
 
 extern "C" {
 #include "macros.h"
@@ -57,6 +59,7 @@ extern "C" {
 #include "src/overlays/actors/ovl_Fishing/z_fishing.h"
 #include "src/overlays/actors/ovl_En_Mk/z_en_mk.h"
 #include "draw.h"
+#include "objects/gameplay_keep/gameplay_keep.h"
 
 extern SaveContext gSaveContext;
 extern PlayState* gPlayState;
@@ -77,6 +80,10 @@ extern void Player_SetupActionPreserveItemAction(PlayState* play, Player* player
 extern void Player_Action_Idle(Player* player, PlayState* play);
 extern s32 Player_DecelerateToZero(Player* player);
 extern s32 func_80834BD4(Player* player, PlayState* play);
+}
+
+static GetItemEntry GetVisualEntry(const GetItemEntry& entry) {
+    return ItemTableManager::Instance->RetrieveItemEntry((s16)entry.drawModIndex, (GetItemID)entry.drawItemId);
 }
 
 bool LocMatchesQuest(Rando::Location loc) {
@@ -226,6 +233,11 @@ bool MeetsRainbowBridgeRequirements() {
 static std::queue<RandomizerCheck> randomizerQueuedChecks;
 static RandomizerCheck randomizerQueuedCheck = RC_UNKNOWN_CHECK;
 static GetItemEntry randomizerQueuedItemEntry = GET_ITEM_NONE;
+static RandomizerCheck sLastIceTrapCheck = RC_UNKNOWN_CHECK;
+
+RandomizerCheck GetLastIceTrapCheck() {
+    return sLastIceTrapCheck;
+}
 
 void ArchipelagoOnReceiveItem(const int32_t item) {
     randomizerQueuedChecks.push(RC_ARCHIPELAGO_RECEIVED_ITEM);
@@ -416,28 +428,60 @@ void RandomizerOnPlayerUpdateForRCQueueHandler() {
         SPDLOG_INFO("Queueing Item mod {} item {} from RC {}", getItemEntry.modIndex, getItemEntry.itemId,
                     static_cast<uint32_t>(rc));
 
+        // NEW: cache skip mode & ice trap flag
+        s32 skipMode = CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK);
+        const bool isIceTrap = (getItemEntry.modIndex == MOD_RANDOMIZER && getItemEntry.getItemId == RG_ICE_TRAP);
+
+        const GetItemEntry& logicEntry = getItemEntry;
+        GetItemEntry visualEntry = logicEntry;
+
+        if (isIceTrap) {
+            sLastIceTrapCheck = rc;
+            RandomizerGet looksLike = Rando::Context::GetInstance()->GetLooksLikeForCheck(rc);
+            if (looksLike != RG_NONE) {
+                // Build a real entry for the disguised RG (this preserves boss souls / bean pack etc.)
+                visualEntry = Rando::StaticData::RetrieveItem(looksLike).GetGIEntry_Copy();
+            }
+        }
+
+        // Ice Trap override: if the Ice Traps category toggle is ON, it wins.
+        const bool iceTrapOverrideEnabled =
+            (skipMode == SGIA_ADVANCED) &&
+            (CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimationAdvanced.IceTraps"), 0) != 0);
+
         if (
             // Skipping ItemGet animation incompatible with checks that require closing a text box to finish
             !(rc == RC_HF_OCARINA_OF_TIME_ITEM && gPlayState->sceneNum == SCENE_HYRULE_FIELD) &&
             !(rc == RC_SPIRIT_TEMPLE_SILVER_GAUNTLETS_CHEST && gPlayState->sceneNum == SCENE_DESERT_COLOSSUS) &&
             !(rc == RC_MARKET_BOMBCHU_BOWLING_FIRST_PRIZE && gPlayState->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY) &&
             !(rc == RC_MARKET_BOMBCHU_BOWLING_SECOND_PRIZE && gPlayState->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY) &&
-            // Always show ItemGet animation for ice traps
-            !(getItemEntry.modIndex == MOD_RANDOMIZER && getItemEntry.getItemId == RG_ICE_TRAP) &&
+            // Always show ItemGet animation for ice traps in legacy modes.
+            // Advanced mode is allowed to override this.
+            (skipMode == SGIA_ADVANCED || !isIceTrap) &&
             // Always show ItemGet animation outside of randomizer to keep behaviour consistent in vanilla
             IS_RANDO &&
-            (CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK) == SGIA_ALL ||
-             (CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK) == SGIA_JUNK &&
-              (
-                  // crude fix to ensure map hints are readable. Ideally replace with better hint tracking.
-                  !(getItemEntry.getItemId >= RG_DEKU_TREE_MAP && getItemEntry.getItemId <= RG_ICE_CAVERN_MAP &&
-                    getItemEntry.modIndex == MOD_RANDOMIZER) &&
-                  (getItemEntry.getItemCategory == ITEM_CATEGORY_JUNK ||
-                   getItemEntry.getItemCategory == ITEM_CATEGORY_SKULLTULA_TOKEN ||
-                   getItemEntry.getItemCategory == ITEM_CATEGORY_LESSER ||
-                   // Treat small keys as junk if Skeleton Key is obtained.
-                   (getItemEntry.getItemCategory == ITEM_CATEGORY_SMALL_KEY &&
-                    Flags_GetRandomizerInf(RAND_INF_HAS_SKELETON_KEY))))))) {
+            (
+                // ADVANCED: use visual entry ONLY for ice traps (because disguise controls category)
+                (skipMode == SGIA_ADVANCED &&
+                 ((isIceTrap && iceTrapOverrideEnabled) ||
+                  ShouldSkipGetItemAnimationAdvanced(isIceTrap ? visualEntry : logicEntry)))
+
+                ||
+
+                // OLD: existing behavior for None / Junk / All is kept exactly as-is
+                (skipMode != SGIA_ADVANCED &&
+                 (skipMode == SGIA_ALL ||
+                  (skipMode == SGIA_JUNK &&
+                   (
+                       // crude fix to ensure map hints are readable. Ideally replace with better hint tracking.
+                       !(getItemEntry.getItemId >= RG_DEKU_TREE_MAP && getItemEntry.getItemId <= RG_ICE_CAVERN_MAP &&
+                         getItemEntry.modIndex == MOD_RANDOMIZER) &&
+                       (getItemEntry.getItemCategory == ITEM_CATEGORY_JUNK ||
+                        getItemEntry.getItemCategory == ITEM_CATEGORY_SKULLTULA_TOKEN ||
+                        getItemEntry.getItemCategory == ITEM_CATEGORY_LESSER ||
+                        // Treat small keys as junk if Skeleton Key is obtained.
+                        (getItemEntry.getItemCategory == ITEM_CATEGORY_SMALL_KEY &&
+                         Flags_GetRandomizerInf(RAND_INF_HAS_SKELETON_KEY))))))))) {
             Item_DropCollectible(gPlayState, &spawnPos, static_cast<int16_t>(ITEM00_SOH_GIVE_ITEM_ENTRY | 0x8000));
 
             isGiSkipped = 1;
@@ -562,6 +606,24 @@ void EnItem00_DrawRandomizedItem(EnItem00* enItem00, PlayState* play) {
     if (CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("MysteriousShuffle"), 0) &&
         enItem00->actor.params != ITEM00_SOH_GIVE_ITEM_ENTRY) {
         randoItem = GET_ITEM_MYSTERY;
+    }
+    if (enItem00->actor.params == ITEM00_SOH_GIVE_ITEM_ENTRY && randoItem.modIndex == MOD_RANDOMIZER &&
+        randoItem.getItemId == RG_ICE_TRAP) {
+        iceTrapScale = 0.8f;
+        OPEN_DISPS(play->state.gfxCtx);
+        Matrix_Push();
+        Gfx_SetupDL_25Xlu(play->state.gfxCtx);
+        gSPSegment(POLY_XLU_DISP++, 0x08,
+                   (uintptr_t)Gfx_TwoTexScroll(play->state.gfxCtx, 0, 0, (0 - play->gameplayFrames) % 128, 32, 32, 1, 0,
+                                               (play->gameplayFrames * -2) % 128, 32, 32));
+
+        Matrix_Translate(0.0f, -40.0f, 0.0f, MTXMODE_APPLY);
+        Matrix_Scale(iceTrapScale, iceTrapScale, iceTrapScale, MTXMODE_APPLY);
+        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+        gDPSetEnvColor(POLY_XLU_DISP++, 0, 50, 100, 255);
+        gSPDisplayList(POLY_XLU_DISP++, (Gfx*)gEffIceFragment3DL);
+        Matrix_Pop();
+        CLOSE_DISPS(play->state.gfxCtx);
     }
     func_8002EBCC(&enItem00->actor, play, 0);
     func_8002ED80(&enItem00->actor, play, 0);
