@@ -67,13 +67,6 @@ void EnHs2_Init(Actor* thisx, PlayState* play) {
     this->actionFunc = func_80A6F1A4;
     this->unk_2A8 = 0;
     this->actor.targetMode = 6;
-
-    if (play->sceneNum == SCENE_KAKARIKO_VILLAGE && CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
-        this->actor.world.pos.x = 756.0;
-        this->actor.world.pos.y = 80.0;
-        this->actor.world.pos.z = 1378.0;
-        this->actor.shape.rot.y = 32534;
-    }
 }
 
 void EnHs2_Destroy(Actor* thisx, PlayState* play) {
