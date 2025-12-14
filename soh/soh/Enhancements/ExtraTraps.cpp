@@ -5,6 +5,7 @@
 #include "soh/Notification/Notification.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/SkipGIAnimations.h"
+#include "soh/Enhancements/mods.h"
 extern "C" {
 #include "variables.h"
 #include "functions.h"
@@ -30,6 +31,7 @@ typedef enum {
     ADD_BOMB_TRAP,
     ADD_VOID_TRAP,
     ADD_AMMO_TRAP,
+    ADD_CHANGE_AGE_TRAP,
     ADD_KILL_TRAP,
     ADD_TELEPORT_TRAP,
     ADD_TRAP_MAX
@@ -48,6 +50,7 @@ const char* altTrapTypeCvars[] = {
     CVAR_ENHANCEMENT("ExtraTraps.Bomb"),      // ADD_BOMB_TRAP
     CVAR_ENHANCEMENT("ExtraTraps.Void"),      // ADD_VOID_TRAP
     CVAR_ENHANCEMENT("ExtraTraps.Ammo"),      // ADD_AMMO_TRAP
+    CVAR_ENHANCEMENT("ExtraTraps.ChangeAge"), // ADD_CHANGE_AGE_TRAP
     CVAR_ENHANCEMENT("ExtraTraps.Kill"),      // ADD_KILL_TRAP
     CVAR_ENHANCEMENT("ExtraTraps.Teleport"),  // ADD_TELEPORT_TRAP
 };
@@ -352,6 +355,9 @@ static void RollRandomTrap(uint32_t seed) {
         case ADD_AMMO_TRAP:
             eventTimer = 3;
             Notification::Emit({ .message = "Ammo Halved!" });
+            break;
+        case ADD_CHANGE_AGE_TRAP:
+            SwitchAge();
             break;
         case ADD_KILL_TRAP:
             GameInteractor::RawAction::SetPlayerHealth(0);
