@@ -45,7 +45,6 @@ enum PlandoSearchMode {
 static std::string gPlandoSearchText = "";
 static int gPlandoSearchMode = PLANDO_SEARCH_ANY;
 
-
 ImVec4 itemColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 ImTextureID textureID;
 ImVec2 imageSize = ImVec2(32.0f, 32.0f);
@@ -276,7 +275,6 @@ static bool IContains(const std::string& haystack, const std::string& needle) {
     auto n = ToLowerCopy(needle);
     return h.find(n) != std::string::npos;
 }
-
 
 Rando::Item plandomizerRandoRetrieveItem(RandomizerGet randoGetItem) {
     auto randoGetItemEntry = Rando::StaticData::RetrieveItem(randoGetItem);
