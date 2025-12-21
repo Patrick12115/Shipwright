@@ -379,6 +379,11 @@ void RandomizerOnExternalCheckHandler(uint32_t randomizerCheck) {
 
 static Vec3f spawnPos = { 0.0f, -999.0f, 0.0f };
 
+static void SkipGI_LogEntry(const char* tag, const GetItemEntry& e) {
+    SPDLOG_INFO("[SkipGI][{}] modIndex={} itemId={} getItemId={} drawModIndex={} drawItemId={} itemCat={}", tag,
+                e.modIndex, e.itemId, e.getItemId, e.drawModIndex, e.drawItemId, (int)e.getItemCategory);
+}
+
 void RandomizerOnPlayerUpdateForRCQueueHandler() {
     // If we're already queued, don't queue again
     if (randomizerQueuedCheck != RC_UNKNOWN_CHECK)
@@ -441,6 +446,21 @@ void RandomizerOnPlayerUpdateForRCQueueHandler() {
             if (looksLike != RG_NONE) {
                 // Build a real entry for the disguised RG (this preserves boss souls / bean pack etc.)
                 visualEntry = Rando::StaticData::RetrieveItem(looksLike).GetGIEntry_Copy();
+
+                // Force the disguise entry to be interpreted as Randomizer/RG for SkipGI classification.
+                visualEntry.modIndex = MOD_RANDOMIZER;
+                visualEntry.getItemId = (GetItemID)looksLike;
+                visualEntry.drawModIndex = MOD_RANDOMIZER;
+                visualEntry.drawItemId = (GetItemID)looksLike;
+
+                SPDLOG_INFO("[SkipGI][CALLSITE] rc={} skipMode={} isIceTrap={} looksLikeRG={}", (uint32_t)rc,
+                            (int)skipMode, (int)isIceTrap,
+                            (int)(isIceTrap ? Rando::Context::GetInstance()->GetLooksLikeForCheck(rc) : RG_NONE));
+
+                SkipGI_LogEntry("CALLSITE_LOGIC", logicEntry);
+                if (isIceTrap) {
+                    SkipGI_LogEntry("CALLSITE_VISUAL", visualEntry);
+                }
             }
         }
 
