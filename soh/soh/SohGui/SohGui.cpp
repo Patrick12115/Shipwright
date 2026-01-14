@@ -36,6 +36,7 @@
 #include "soh/Network/Archipelago/ArchipelagoConsoleWindow.h"
 #include "soh/Enhancements/mod_menu.h"
 #include "soh/Network/Anchor/Anchor.h"
+#include "soh/Network/CrowdControl/CrowdControl.h"
 #include "soh/Enhancements/Holiday/Caladius.h"
 
 namespace SohGui {
@@ -104,6 +105,8 @@ std::shared_ptr<SohModalWindow> mModalWindow;
 std::shared_ptr<Notification::Window> mNotificationWindow;
 std::shared_ptr<TimeDisplayWindow> mTimeDisplayWindow;
 std::shared_ptr<AnchorRoomWindow> mAnchorRoomWindow;
+std::shared_ptr<CrowdControlChaosWindow> mCrowdControlChaosWindow;
+std::shared_ptr<CrowdControlEffectTimersWindow> mCrowdControlEffectTimersWindow;
 std::shared_ptr<CaladiusWindow> mCaladiusWindow;
 
 UIWidgets::Colors GetMenuThemeColor() {
@@ -220,6 +223,17 @@ void SetupGuiElements() {
     gui->AddGuiWindow(mTimeDisplayWindow);
     mAnchorRoomWindow = std::make_shared<AnchorRoomWindow>(CVAR_WINDOW("AnchorRoom"), "Anchor Room");
     gui->AddGuiWindow(mAnchorRoomWindow);
+
+    // Offline Crowd Control Chaos window (should stay open when ESC menu closes)
+    mCrowdControlChaosWindow =
+        std::make_shared<CrowdControlChaosWindow>(CVAR_WINDOW("CrowdControlChaos"), "Crowd Control Chaos");
+    gui->AddGuiWindow(mCrowdControlChaosWindow);
+    // Crowd Control Timers window (stays open when ESC menu closes)
+    mCrowdControlEffectTimersWindow = std::make_shared<CrowdControlEffectTimersWindow>(
+        CVAR_WINDOW("CrowdControlTimers"), "Crowd Control Timers", ImVec2(420, 240) // <-- add a real default size
+    );
+    gui->AddGuiWindow(mCrowdControlEffectTimersWindow);
+
     mCaladiusWindow = std::make_shared<CaladiusWindow>(CVAR_WINDOW("Holiday Cal"), "Holiday Cal");
     gui->AddGuiWindow(mCaladiusWindow);
     mCaladiusWindow->Show();
@@ -261,6 +275,8 @@ void Destroy() {
     mArchipelagoConsoleWindow = nullptr;
     mTimeDisplayWindow = nullptr;
     mAnchorRoomWindow = nullptr;
+    mCrowdControlChaosWindow = nullptr;
+    mCrowdControlEffectTimersWindow = nullptr;
     mCaladiusWindow = nullptr;
 }
 

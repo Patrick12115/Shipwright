@@ -196,6 +196,16 @@ void SohMenu::AddMenuNetwork() {
         .RaceDisable(true)
         .Options(CheckboxOptions().Tooltip("Enemies spawned by CrowdControl won't be considered for \"clear enemy "
                                            "rooms\", so they don't need to be killed to complete these rooms."));
+
+    // Offline Chaos Mode (no Crowd Control connection required)
+    path.column = SECTION_COLUMN_2;
+    AddWidget(path, "Chaos Mode", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "Popout Chaos Window", WIDGET_WINDOW_BUTTON)
+        .CVar(CVAR_WINDOW("CrowdControlChaos"))
+        .RaceDisable(false)
+        .WindowName("Crowd Control Chaos")
+        .Options(WindowButtonOptions().Tooltip("Opens the offline Chaos Mode window (no CC connection required)."));
+
     path.sidebarName = "Anchor";
     AddSidebarEntry("Network", path.sidebarName, 2);
 }
