@@ -311,11 +311,11 @@ jobs:
         cmake -S . -B build-windows -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DBUILD_REMOTE_CONTROL=1
         cmake --build build-windows --config Release --parallel 10
 
-        (cd build-windows && cpack)
+        (cd build-windows && cpack -G ZIP)
         cd ..
-        mv _packages/*.zip _packages/soh-windows.zip
+        mv build-windows/_packages/*.zip build-windows/_packages/soh-windows.zip
     - name: Unzip package
-      run: Expand-Archive -Path _packages/soh-windows.zip -DestinationPath soh-windows
+  run: Expand-Archive -Path build-windows/_packages/soh-windows.zip -DestinationPath soh-windows
     - name: Upload build
       uses: actions/upload-artifact@v4
       with:
@@ -327,3 +327,8 @@ jobs:
       with:
         key: ${{ steps.restore-cache-vcpkg.outputs.cache-primary-key }}
         path: vcpkg
+
+- name: Clear vcpkg ninja tool cache
+      shell: pwsh
+      run: |
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "vcpkg\downloads\tools\ninja-*"
