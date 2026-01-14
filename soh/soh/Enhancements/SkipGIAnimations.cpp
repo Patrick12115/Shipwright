@@ -15,12 +15,12 @@
 // CVar wiring
 // --------------------------------------------------------
 
-#define SKIPGI_LOG_PICKUP(entry, cat)                                                                  \
-    SPDLOG_INFO("[SkipGI][PICKUP] "                                                                    \
-                "modIndex={} getItemId={} (as RG={}, as ItemID=0x{:X}) | "                             \
-                "drawModIndex={} drawItemId={} (as RG={}, as ItemID=0x{:X}) | "                        \
-                "isIceTrap={} classifiedCat={}",                                                       \
-                entry.modIndex, entry.getItemId, entry.getItemId, entry.getItemId, entry.drawModIndex, \
+#define SKIPGI_LOG_PICKUP(entry, cat)                                                                                \
+    SPDLOG_INFO("[SkipGI][PICKUP] "                                                                                  \
+                "modIndex={} itemId={} getItemId={} (as RG={}, as ItemID=0x{:X}) | "                                 \
+                "drawModIndex={} drawItemId={} (as RG={}, as ItemID=0x{:X}) | "                                      \
+                "isIceTrap={} classifiedCat={}",                                                                     \
+                entry.modIndex, entry.itemId, entry.getItemId, entry.getItemId, entry.getItemId, entry.drawModIndex, \
                 entry.drawItemId, entry.drawItemId, entry.drawItemId, IsIceTrap(entry), (int)cat)
 
 #define CVAR_SKIP_GI_SIMPLE CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation")
@@ -102,10 +102,20 @@ static bool IsRandomizerEntry(const GetItemEntry& entry) {
     return entry.modIndex == MOD_RANDOMIZER;
 }
 
-// For vanilla “Item Give - item: 0xNN” behavior, your log showed that the real item id
-// is in drawItemId, not getItemId (getItemId was something else entirely).
 static uint16_t GetEffectiveVanillaItemId(const GetItemEntry& entry) {
-    return entry.drawItemId;
+    // For vanilla gives (modIndex == 0), entry.itemId is the authoritative ItemID in some paths
+    // (your Sun's Song log proves drawModIndex/drawItemId can be something else entirely).
+    if (entry.modIndex != MOD_RANDOMIZER) {
+        // If draw info is also vanilla, prefer it (matches your other items where Item Give matched drawItemId)
+        if (entry.drawModIndex == 0) {
+            return entry.drawItemId;
+        }
+        // Otherwise fall back to the actual item being given
+        return (uint16_t)entry.itemId;
+    }
+
+    // Randomizer entries keep using drawItemId for vanilla-table interpretation
+    return (uint16_t)entry.drawItemId;
 }
 
 // ---------- Specific RG/ITEM check helpers ----------
@@ -320,6 +330,30 @@ static bool IsMajorItem(const GetItemEntry& entry) {
         case ITEM_GERUDO_CARD:
 
         case ITEM_SINGLE_MAGIC:
+
+        case ITEM_POCKET_EGG:
+        case ITEM_COJIRO:
+        case ITEM_ODD_MUSHROOM:
+        case ITEM_ODD_POTION:
+        case ITEM_SAW:
+        case ITEM_SWORD_BROKEN:
+        case ITEM_PRESCRIPTION:
+        case ITEM_FROG:
+        case ITEM_EYEDROPS:
+        case ITEM_CLAIM_CHECK:
+
+        case ITEM_BOTTLE:
+        case ITEM_POTION_RED:
+        case ITEM_POTION_GREEN:
+        case ITEM_POTION_BLUE:
+        case ITEM_FAIRY:
+        case ITEM_FISH:
+        case ITEM_BLUE_FIRE:
+        case ITEM_POE:
+        case ITEM_MILK_BOTTLE:
+        case ITEM_LETTER_RUTO:
+        case ITEM_BIG_POE:
+        case ITEM_BUG:
             return true;
 
         default:
@@ -447,7 +481,7 @@ static bool IsSong(const GetItemEntry& entry) {
             case RG_PRELUDE_OF_LIGHT:
                 return true;
             default:
-                return false;
+                break;
         }
     }
 
@@ -487,7 +521,7 @@ static bool IsDungeonReward(const GetItemEntry& entry) {
             case RG_LIGHT_MEDALLION:
                 return true;
             default:
-                return false;
+                break;
         }
     }
 
