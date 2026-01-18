@@ -45,6 +45,14 @@ void SohMenu::AddMenuDevTools() {
         .Options(
             CheckboxOptions().Tooltip("Automatically shows Debug Warp Screen when starting or resetting the game.\n"
                                       "This option takes precedence over \"Boot Sequence\" option."));
+    AddWidget(path, "Map Select Button Combination:", WIDGET_CVAR_BTN_SELECTOR)
+        .CVar("gDeveloperTools.MapSelectBtn")
+        .Options(BtnSelectorOptions().DefaultValue(BTN_R | BTN_L | BTN_Z))
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0); });
+    AddWidget(path, "No Clip Button Combination:", WIDGET_CVAR_BTN_SELECTOR)
+        .CVar("gDeveloperTools.NoClipBtn")
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0); })
+        .Options(BtnSelectorOptions().DefaultValue(BTN_L | BTN_DRIGHT));
     AddWidget(path, "OoT Registry Editor", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_DEVELOPER_TOOLS("RegEditEnabled"))
         .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0); })
