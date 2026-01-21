@@ -178,6 +178,9 @@ void SohMenu::AddMenuSettings() {
         .RaceDisable(false)
         .Options(CheckboxOptions().Tooltip(
             "Search input box gets autofocus when visible. Does not affect using other widgets."));
+    AddWidget(path, "Settings Menu Button Combination:", WIDGET_CVAR_BTN_SELECTOR)
+        .CVar("gSettings.SettingsMenuBtn")
+        .Options(BtnSelectorOptions().DefaultValue(BTN_CUSTOM_MODIFIER1));
     AddWidget(path, "Reset Button Combination:", WIDGET_CVAR_BTN_SELECTOR)
         .CVar("gSettings.ResetBtn")
         .Options(BtnSelectorOptions().DefaultValue(BTN_CUSTOM_MODIFIER2));

@@ -90,6 +90,8 @@ void SohMenu::AddMenuRandomizer() {
     AddWidget(path, "Signs Hint Entrances", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_RANDOMIZER_ENHANCEMENT("EntrancesOnSigns"))
         .Options(CheckboxOptions().Tooltip("If enabled, signs near loading zones will tell you where they lead to."));
+    AddWidget(path, "No Junk Notifications", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_RANDOMIZER_ENHANCEMENT("NoJunkNotifications"));
     path.column = SECTION_COLUMN_2;
     AddWidget(path, "Skip Get Item Animations", WIDGET_CVAR_COMBOBOX)
         .CVar(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"))

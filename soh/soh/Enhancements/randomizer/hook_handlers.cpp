@@ -1234,12 +1234,14 @@ void RandomizerOnVanillaBehaviorHandler(GIVanillaBehavior id, bool* should, va_l
                             message = "You found ";
                             break;
                     }
-
-                    Notification::Emit({
-                        .itemIcon = GetTextureForItemId(item00->itemEntry.itemId),
-                        .message = message,
-                        .suffix = SohUtils::GetItemName(item00->itemEntry.itemId),
-                    });
+                    if (!(CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("NoJunkNotifications"), 0) &&
+                          item00->itemEntry.getItemCategory == ITEM_CATEGORY_JUNK)) {
+                        Notification::Emit({
+                            .itemIcon = GetTextureForItemId(item00->itemEntry.itemId),
+                            .message = message,
+                            .suffix = SohUtils::GetItemName(item00->itemEntry.itemId),
+                        });
+                    }
                 } else if (item00->itemEntry.modIndex == MOD_RANDOMIZER) {
                     std::string message;
                     std::string itemName;
