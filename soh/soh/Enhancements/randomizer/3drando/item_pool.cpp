@@ -82,10 +82,11 @@ const std::array<RandomizerGet, 59> alwaysItems = {
     RG_ARROWS_10,
     RG_TREASURE_GAME_HEART,
 };
-const std::array<RandomizerGet, 44> easyItems = {
+const std::array<RandomizerGet, 48> easyItems = {
     RG_BIGGORON_SWORD,
     RG_KOKIRI_SWORD,
     RG_MASTER_SWORD,
+    RG_HYLIAN_SHIELD,
     RG_BOOMERANG,
     RG_LENS_OF_TRUTH,
     RG_MEGATON_HAMMER,
@@ -95,8 +96,11 @@ const std::array<RandomizerGet, 44> easyItems = {
     RG_HOVER_BOOTS,
     RG_MIRROR_SHIELD,
     RG_FIRE_ARROWS,
+    RG_ICE_ARROWS,
     RG_LIGHT_ARROWS,
     RG_DINS_FIRE,
+    RG_FARORES_WIND,
+    RG_NAYRUS_LOVE,
     RG_PROGRESSIVE_HOOKSHOT,
     RG_PROGRESSIVE_STRENGTH,
     RG_PROGRESSIVE_SCALE,
@@ -447,6 +451,14 @@ void GenerateItemPool() {
     ItemPool.clear();
     PendingJunkPool.clear();
 
+    const bool plentiful = ctx->GetOption(RSK_ITEM_POOL).Is(RO_ITEM_POOL_PLENTIFUL);
+
+    auto AddPlentifulCopy = [&](auto item) {
+        if (plentiful) {
+            AddItemToPool(PendingJunkPool, item);
+        }
+    };
+
     // Initialize ice trap models that are always in the pool
     ctx->possibleIceTrapModels = { RG_MIRROR_SHIELD,
                                    RG_BOOMERANG,
@@ -577,6 +589,7 @@ void GenerateItemPool() {
 
     if (ctx->GetOption(RSK_SKELETON_KEY)) {
         AddItemToMainPool(RG_SKELETON_KEY);
+        AddPlentifulCopy(RG_SKELETON_KEY);
         ctx->possibleIceTrapModels.push_back(RG_SKELETON_KEY);
     }
 
@@ -586,38 +599,47 @@ void GenerateItemPool() {
 
     if (ctx->GetOption(RSK_SHUFFLE_ISG)) {
         AddItemToMainPool(RG_ABILITY_ISG);
+        AddPlentifulCopy(RG_ABILITY_ISG);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_ISG);
     }
     if (ctx->GetOption(RSK_SHUFFLE_OI)) {
         AddItemToMainPool(RG_ABILITY_OI);
+        AddPlentifulCopy(RG_ABILITY_OI);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_OI);
     }
     if (ctx->GetOption(RSK_SHUFFLE_QPA)) {
         AddItemToMainPool(RG_ABILITY_QPA);
+        AddPlentifulCopy(RG_ABILITY_QPA);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_QPA);
     }
     if (ctx->GetOption(RSK_SHUFFLE_HESS)) {
         AddItemToMainPool(RG_ABILITY_HESS);
+        AddPlentifulCopy(RG_ABILITY_HESS);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_HESS);
     }
     if (ctx->GetOption(RSK_SHUFFLE_SUPERSLIDE)) {
         AddItemToMainPool(RG_ABILITY_SUPERSLIDE);
+        AddPlentifulCopy(RG_ABILITY_SUPERSLIDE);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_SUPERSLIDE);
     }
     if (ctx->GetOption(RSK_SHUFFLE_HOVER)) {
         AddItemToMainPool(RG_ABILITY_HOVER);
+        AddPlentifulCopy(RG_ABILITY_HOVER);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_HOVER);
     }
     if (ctx->GetOption(RSK_SHUFFLE_EQUIP_SWAP)) {
         AddItemToMainPool(RG_ABILITY_EQUIP_SWAP);
+        AddPlentifulCopy(RG_ABILITY_EQUIP_SWAP);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_EQUIP_SWAP);
     }
     if (ctx->GetOption(RSK_SHUFFLE_GROUND_JUMP)) {
         AddItemToMainPool(RG_ABILITY_GROUND_JUMP);
+        AddPlentifulCopy(RG_ABILITY_GROUND_JUMP);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_GROUND_JUMP);
     }
     if (ctx->GetOption(RSK_SHUFFLE_WEIRDSHOT)) {
         AddItemToMainPool(RG_ABILITY_WEIRDSHOT);
+        AddPlentifulCopy(RG_ABILITY_WEIRDSHOT);
         ctx->possibleIceTrapModels.push_back(RG_ABILITY_WEIRDSHOT);
     }
 
@@ -740,14 +762,23 @@ void GenerateItemPool() {
 
     if (ctx->GetOption(RSK_SHUFFLE_ADULT_TRADE)) {
         AddItemToMainPool(RG_POCKET_EGG);
+        AddPlentifulCopy(RG_POCKET_EGG);
         AddItemToMainPool(RG_COJIRO);
+        AddPlentifulCopy(RG_COJIRO);
         AddItemToMainPool(RG_ODD_MUSHROOM);
+        AddPlentifulCopy(RG_ODD_MUSHROOM);
         AddItemToMainPool(RG_ODD_POTION);
+        AddPlentifulCopy(RG_ODD_POTION);
         AddItemToMainPool(RG_POACHERS_SAW);
+        AddPlentifulCopy(RG_POACHERS_SAW);
         AddItemToMainPool(RG_BROKEN_SWORD);
+        AddPlentifulCopy(RG_BROKEN_SWORD);
         AddItemToMainPool(RG_PRESCRIPTION);
+        AddPlentifulCopy(RG_PRESCRIPTION);
         AddItemToMainPool(RG_EYEBALL_FROG);
+        AddPlentifulCopy(RG_EYEBALL_FROG);
         AddItemToMainPool(RG_EYEDROPS);
+        AddPlentifulCopy(RG_EYEDROPS);
         ctx->possibleIceTrapModels.push_back(RG_POCKET_EGG);
         ctx->possibleIceTrapModels.push_back(RG_COJIRO);
         ctx->possibleIceTrapModels.push_back(RG_ODD_MUSHROOM);
@@ -759,6 +790,7 @@ void GenerateItemPool() {
         ctx->possibleIceTrapModels.push_back(RG_EYEDROPS);
     }
     AddItemToMainPool(RG_CLAIM_CHECK);
+    AddPlentifulCopy(RG_CLAIM_CHECK);
 
     if (ctx->GetOption(RSK_SHUFFLE_CHEST_MINIGAME).Is(RO_CHEST_GAME_SINGLE_KEYS)) {
         AddItemToMainPool(RG_TREASURE_GAME_SMALL_KEY, 6); // 6 individual keys
@@ -803,13 +835,21 @@ void GenerateItemPool() {
 
     if (ctx->GetOption(RSK_SHUFFLE_BOSS_SOULS)) {
         AddItemToMainPool(RG_GOHMA_SOUL);
+        AddPlentifulCopy(RG_GOHMA_SOUL);
         AddItemToMainPool(RG_KING_DODONGO_SOUL);
+        AddPlentifulCopy(RG_KING_DODONGO_SOUL);
         AddItemToMainPool(RG_BARINADE_SOUL);
+        AddPlentifulCopy(RG_BARINADE_SOUL);
         AddItemToMainPool(RG_PHANTOM_GANON_SOUL);
+        AddPlentifulCopy(RG_PHANTOM_GANON_SOUL);
         AddItemToMainPool(RG_VOLVAGIA_SOUL);
+        AddPlentifulCopy(RG_VOLVAGIA_SOUL);
         AddItemToMainPool(RG_MORPHA_SOUL);
+        AddPlentifulCopy(RG_MORPHA_SOUL);
         AddItemToMainPool(RG_BONGO_BONGO_SOUL);
+        AddPlentifulCopy(RG_BONGO_BONGO_SOUL);
         AddItemToMainPool(RG_TWINROVA_SOUL);
+        AddPlentifulCopy(RG_TWINROVA_SOUL);
 
         ctx->possibleIceTrapModels.push_back(RG_GOHMA_SOUL);
         ctx->possibleIceTrapModels.push_back(RG_KING_DODONGO_SOUL);
@@ -819,8 +859,10 @@ void GenerateItemPool() {
         ctx->possibleIceTrapModels.push_back(RG_MORPHA_SOUL);
         ctx->possibleIceTrapModels.push_back(RG_BONGO_BONGO_SOUL);
         ctx->possibleIceTrapModels.push_back(RG_TWINROVA_SOUL);
+
         if (ctx->GetOption(RSK_SHUFFLE_BOSS_SOULS).Is(RO_BOSS_SOULS_ON_PLUS_GANON)) {
             AddItemToMainPool(RG_GANON_SOUL);
+            AddPlentifulCopy(RG_GANON_SOUL);
             ctx->possibleIceTrapModels.push_back(RG_GANON_SOUL);
         }
     }
@@ -1043,6 +1085,7 @@ void GenerateItemPool() {
 
         for (auto key : overworldKeys) {
             AddItemToPool(ItemPool, key);
+            AddPlentifulCopy(key);
         }
 
         // Pick one at random for Ice Trap model
@@ -1340,6 +1383,7 @@ void GenerateItemPool() {
         AddItemToMainPool(RG_PROGRESSIVE_GORONSWORD, 2);
         ctx->possibleIceTrapModels.push_back(RG_PROGRESSIVE_GORONSWORD);
     } else {
+        AddPlentifulCopy(RG_BIGGORON_SWORD);
         ctx->possibleIceTrapModels.push_back(RG_BIGGORON_SWORD);
     }
 
