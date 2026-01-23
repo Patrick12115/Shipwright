@@ -7,6 +7,8 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "UIWidgets.hpp"
 #include <spdlog/fmt/fmt.h>
+#include "soh/Enhancements/cvars/CvarCatalog.h"
+#include "soh/SohGui/SohGui.hpp"
 
 extern "C" {
 #include "include/z64audio.h"
@@ -519,6 +521,245 @@ void SohMenu::AddMenuSettings() {
         .WindowName("Mod Menu")
         .HideInSearch(true)
         .Options(WindowButtonOptions().Tooltip("Enables the separate Mod Menu Window."));
-}
+    // =========================
+    // CVar Binds (checkbox only)
+    // =========================
+    path.sidebarName = "CVar Binds";
+    path.column = SECTION_COLUMN_1;
+    AddSidebarEntry("Settings", path.sidebarName, 1);
 
+    AddWidget(path, "CVar Binds", WIDGET_SEPARATOR_TEXT);
+
+    AddWidget(path, "CVarBindEditor", WIDGET_CUSTOM).HideInSearch(true).CustomFunction([](WidgetInfo& info) {
+        static ImGuiTextFilter sFilter;
+
+        auto BindCountName = []() -> const char* { return "gSettings.CVarBinds.Count"; };
+
+        auto BindCVarName = [](int index) -> std::string {
+            return "gSettings.CVarBinds.Entries.Entry" + std::to_string(index) + ".CVar";
+        };
+
+        auto BindMaskName = [](int index) -> std::string {
+            return "gSettings.CVarBinds.Entries.Entry" + std::to_string(index) + ".Mask";
+        };
+
+        auto GetCount = [&]() -> int {
+            int c = CVarGetInteger(BindCountName(), 0);
+            return c < 0 ? 0 : c;
+        };
+
+        auto SetCount = [&](int c) {
+            if (c < 0) {
+                c = 0;
+            }
+            CVarSetInteger(BindCountName(), c);
+        };
+
+        // Build a fast name->label lookup once (avoids scanning the catalog every row)
+        const auto& all = CVarCatalog::GetAll();
+        static std::unordered_map<std::string, std::string> sNameToLabel;
+        if (sNameToLabel.empty() && !all.empty()) {
+            sNameToLabel.reserve(all.size());
+            for (const auto& e : all) {
+                sNameToLabel.emplace(e.name, e.label);
+            }
+        }
+
+        auto AddBind = [&](const char* cvarName) {
+            if (cvarName == nullptr || cvarName[0] == '\0') {
+                return;
+            }
+
+            // Prevent duplicates
+            const int count = GetCount();
+            for (int i = 0; i < count; i++) {
+                const std::string cvarKey = BindCVarName(i);
+                const char* existing = CVarGetString(cvarKey.c_str(), "");
+                if (existing && std::string(existing) == cvarName) {
+                    return;
+                }
+            }
+
+            const int newIndex = count;
+            const std::string cvarKey = BindCVarName(newIndex);
+            const std::string maskKey = BindMaskName(newIndex);
+
+            CVarSetString(cvarKey.c_str(), cvarName);
+            CVarSetInteger(maskKey.c_str(), 0); // default unbound
+            SetCount(count + 1);
+
+            // Persist immediately (matches your current behavior)
+            CVarSave();
+        };
+
+        auto RemoveBind = [&](int index) {
+            const int count = GetCount();
+            if (index < 0 || index >= count) {
+                return;
+            }
+
+            // Shift down [index+1..count-1] to [index..count-2]
+            for (int i = index; i < count - 1; i++) {
+                const std::string fromC = BindCVarName(i + 1);
+                const std::string toC = BindCVarName(i);
+                CVarCopy(fromC.c_str(), toC.c_str());
+
+                const std::string fromM = BindMaskName(i + 1);
+                const std::string toM = BindMaskName(i);
+                CVarCopy(fromM.c_str(), toM.c_str());
+            }
+
+            // Clear last slot (keeps registry tidy)
+            const std::string lastC = BindCVarName(count - 1);
+            const std::string lastM = BindMaskName(count - 1);
+            CVarClear(lastC.c_str());
+            CVarClear(lastM.c_str());
+
+            SetCount(count - 1);
+
+            // Persist immediately
+            CVarSave();
+        };
+
+        // ---------------------------------------------------------------------
+        // Top controls: Search (full width)
+        // ---------------------------------------------------------------------
+        PushStyleInput(THEME_COLOR);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Search:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        sFilter.Draw("##CVarBindSearch");
+        ImGui::Spacing();
+
+        // ---------------------------------------------------------------------
+        // Two panels that fill the remaining space (mod_menu-style sizing)
+        // ---------------------------------------------------------------------
+        if (ImGui::BeginTable("##CVarBindsTable", 2,
+                              ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                                  ImGuiTableFlags_SizingStretchProp)) {
+            ImGui::TableSetupColumn("Matches", ImGuiTableColumnFlags_WidthStretch, 0.55f);
+            ImGui::TableSetupColumn("Binds", ImGuiTableColumnFlags_WidthStretch, 0.45f);
+
+            // Header row, but disable interaction like your mod menu does
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::TableHeadersRow();
+            ImGui::PopItemFlag();
+
+            ImGui::TableNextRow();
+
+            // =========================
+            // LEFT: Matches
+            // =========================
+            ImGui::TableNextColumn();
+            if (ImGui::BeginChild("##CVarBindMatchesPanel", ImVec2(0.0f, -8.0f), true)) {
+                // Panel header (kept subtle; table header already labels)
+                ImGui::TextDisabled("Click a CVar to add it");
+                ImGui::Separator();
+
+                // Fill remaining height; -8 keeps bottom padding consistent
+                if (ImGui::BeginChild("##CVarBindMatchesList", ImVec2(0.0f, -8.0f), false)) {
+                    for (const auto& e : all) {
+                        if (!sFilter.PassFilter(e.label.c_str()) && !sFilter.PassFilter(e.name.c_str())) {
+                            continue;
+                        }
+
+                        std::string display = e.label;
+                        if (display.empty()) {
+                            display = e.name;
+                        } else if (display != e.name) {
+                            display += "  (";
+                            display += e.name;
+                            display += ")";
+                        }
+
+                        if (ImGui::Selectable(display.c_str(), false)) {
+                            AddBind(e.name.c_str());
+                        }
+
+                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+                            ImGui::BeginTooltip();
+                            ImGui::TextUnformatted(e.name.c_str());
+                            ImGui::EndTooltip();
+                        }
+                    }
+                }
+                ImGui::EndChild();
+
+                ImGui::EndChild();
+            }
+
+            // =========================
+            // RIGHT: Binds
+            // =========================
+            ImGui::TableNextColumn();
+            if (ImGui::BeginChild("##CVarBindBindsPanel", ImVec2(0.0f, -8.0f), true)) {
+                ImGui::TextDisabled("Set a button combo to toggle the CVar");
+                ImGui::Separator();
+
+                if (ImGui::BeginChild("##CVarBindBindsList", ImVec2(0.0f, -8.0f), false)) {
+                    const int count = GetCount();
+
+                    if (count == 0) {
+                        ImGui::TextUnformatted("No binds yet.");
+                        ImGui::TextUnformatted("Pick one from the Matches list.");
+                    }
+
+                    for (int i = 0; i < count; i++) {
+                        ImGui::PushID(i);
+
+                        const std::string cvarKey = BindCVarName(i);
+                        const std::string maskKey = BindMaskName(i);
+
+                        const char* cvarName = CVarGetString(cvarKey.c_str(), "");
+                        if (cvarName == nullptr) {
+                            cvarName = "";
+                        }
+
+                        std::string label = cvarName;
+                        if (auto it = sNameToLabel.find(cvarName); it != sNameToLabel.end() && !it->second.empty()) {
+                            label = it->second;
+                        }
+
+                        // Row: label + remove button aligned right
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::TextUnformatted(label.c_str());
+                        ImGui::SameLine();
+
+                        const float avail = ImGui::GetContentRegionAvail().x;
+                        const float btnW = ImGui::CalcTextSize("Remove").x + (ImGui::GetStyle().FramePadding.x * 2.0f);
+                        if (avail > btnW) {
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - btnW));
+                        }
+
+                        if (ImGui::SmallButton("Remove")) {
+                            RemoveBind(i);
+                            ImGui::PopID();
+                            break;
+                        }
+
+                        UIWidgets::BtnSelectorOptions btnOptions;
+                        btnOptions.DefaultValue(0);
+                        btnOptions.LabelPosition(UIWidgets::LabelPositions::Within); // <-- THIS is the key
+
+                        ImGui::SetNextItemWidth(-FLT_MIN);
+                        if (UIWidgets::CVarBtnSelector("Button Combo:", maskKey.c_str(), btnOptions)) {
+                            CVarSave();
+                        }
+
+                        ImGui::Separator();
+                        ImGui::PopID();
+                    }
+                }
+                ImGui::EndChild();
+
+                ImGui::EndChild();
+            }
+
+            ImGui::EndTable();
+        }
+        PopStyleInput();
+    });
+}
 } // namespace SohGui

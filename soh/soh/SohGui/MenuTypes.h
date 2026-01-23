@@ -3,6 +3,7 @@
 
 #include <libultraship/libultraship.h>
 #include "UIWidgets.hpp"
+#include "soh/Enhancements/cvars/CvarCatalog.h"
 
 typedef enum {
     DISABLE_FOR_NO_VSYNC,
@@ -117,6 +118,12 @@ struct WidgetInfo {
 
     WidgetInfo& CVar(const char* cVar_) {
         cVar = cVar_;
+
+        // Auto-register ONLY checkbox-backed CVars for the hotkey picker list
+        if (type == WIDGET_CVAR_CHECKBOX) {
+            CVarCatalog::Register(cVar_, name.c_str());
+        }
+
         return *this;
     }
 
