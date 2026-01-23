@@ -2471,8 +2471,9 @@ void RandomizerOnActorUpdateHandler(void* refActor) {
     }
 
     // In ER, override the warp song locations. Also removes the warp song cutscene
-    if ((RAND_GET_OPTION(RSK_SHUFFLE_ENTRANCES) || (CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 0))) && actor->id == ACTOR_DEMO_KANKYO &&
-        actor->params == 0x000F) { // Warp Song particles
+    if ((RAND_GET_OPTION(RSK_SHUFFLE_ENTRANCES) ||
+         (CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 0))) &&
+        actor->id == ACTOR_DEMO_KANKYO && actor->params == 0x000F) { // Warp Song particles
         Entrance_SetWarpSongEntrance();
     }
 }

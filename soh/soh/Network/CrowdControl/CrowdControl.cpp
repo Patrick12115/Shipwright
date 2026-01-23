@@ -1878,7 +1878,6 @@ struct ChaosThemeScope {
         grabActive.z = std::min(grabActive.z * 1.45f, 1.0f);
         grabActive.w = 1.0f;
 
-
         auto push = [&](ImGuiCol idx, ImVec4 c) {
             ImGui::PushStyleColor(idx, c);
             colorCount++;
@@ -1894,7 +1893,6 @@ struct ChaosThemeScope {
 
         // Checkbox checkmark (not the box)
         push(ImGuiCol_CheckMark, white075);
-
 
         // Buttons (this fixes SmallButton +/- being grey)
         push(ImGuiCol_Button, accentSoft);
