@@ -1,6 +1,4 @@
-// File: CVarCatalog.cpp
-
-#include "CVarCatalog.h"
+#include "CvarCatalog.h"
 
 #include <libultraship/bridge.h>
 
