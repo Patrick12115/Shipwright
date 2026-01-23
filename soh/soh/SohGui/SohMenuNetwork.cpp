@@ -121,7 +121,7 @@ void SohMenu::AddMenuNetwork() {
     });
 
     path.sidebarName = "Crowd Control";
-    AddSidebarEntry("Network", path.sidebarName, 3);
+    AddSidebarEntry("Network", path.sidebarName, 2);
     path.column = SECTION_COLUMN_1;
 
     AddWidget(path, "About Crowd Control", WIDGET_SEPARATOR_TEXT);

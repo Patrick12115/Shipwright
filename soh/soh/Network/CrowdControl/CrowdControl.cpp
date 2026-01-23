@@ -15,6 +15,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/Notification/Notification.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/SohGui/SohGui.hpp"
 
 extern "C" {
 #include <z64.h>
@@ -1838,8 +1839,143 @@ void CrowdControl::DrawChaosWindowContents() {
     DrawChaosUi();
 }
 
+struct ChaosThemeScope {
+    int colorCount = 0;
+
+    ChaosThemeScope() {
+        UIWidgets::PushStyleInput(THEME_COLOR);
+        UIWidgets::PushStyleCheckbox(THEME_COLOR);
+        UIWidgets::PushStyleButton(THEME_COLOR);
+
+        const ImVec4 accent = UIWidgets::ColorValues.at(THEME_COLOR);
+
+        // No transparency variants (alpha stays 1.0)
+        ImVec4 accentSoft = accent;
+        ImVec4 accentHover = accent;
+        ImVec4 accentActive = accent;
+
+        accentSoft.w = 1.0f;
+        accentHover.w = 1.0f;
+        accentActive.w = 1.0f;
+
+        // Make the slider "track" darker than the grab (no alpha, just darker RGB)
+        ImVec4 track = accent;
+        track.x *= 1.0f;
+        track.y *= 1.0f;
+        track.z *= 1.0f;
+        track.w = 1.0f;
+
+        // Make the slider handle brighter than everything else
+        ImVec4 grab = accent;
+        grab.x = std::min(grab.x * 1.25f, 1.0f);
+        grab.y = std::min(grab.y * 1.25f, 1.0f);
+        grab.z = std::min(grab.z * 1.25f, 1.0f);
+        grab.w = 1.0f;
+
+        ImVec4 grabActive = accent;
+        grabActive.x = std::min(grabActive.x * 1.45f, 1.0f);
+        grabActive.y = std::min(grabActive.y * 1.45f, 1.0f);
+        grabActive.z = std::min(grabActive.z * 1.45f, 1.0f);
+        grabActive.w = 1.0f;
+
+
+        auto push = [&](ImGuiCol idx, ImVec4 c) {
+            ImGui::PushStyleColor(idx, c);
+            colorCount++;
+        };
+
+        // White grab + checkmark, semi-transparent
+        ImVec4 white075 = ImVec4(1.0f, 1.0f, 1.0f, 0.75f);
+        ImVec4 white050 = ImVec4(1.0f, 1.0f, 1.0f, 0.50f);
+
+        // Slider handle
+        push(ImGuiCol_SliderGrab, white050);
+        push(ImGuiCol_SliderGrabActive, white050);
+
+        // Checkbox checkmark (not the box)
+        push(ImGuiCol_CheckMark, white075);
+
+
+        // Buttons (this fixes SmallButton +/- being grey)
+        push(ImGuiCol_Button, accentSoft);
+        push(ImGuiCol_ButtonHovered, accentHover);
+        push(ImGuiCol_ButtonActive, accentActive);
+
+        // CollapsingHeader / Table header colors (this fixes category boxes)
+        push(ImGuiCol_Header, accentSoft);
+        push(ImGuiCol_HeaderHovered, accentHover);
+        push(ImGuiCol_HeaderActive, accentActive);
+
+        // Slider track + grab (this fixes "bar is same color as slider box")
+        push(ImGuiCol_FrameBg, track);
+        push(ImGuiCol_FrameBgHovered, track);
+        push(ImGuiCol_FrameBgActive, track);
+
+        // Tabs
+        push(ImGuiCol_Tab, accentSoft);
+        push(ImGuiCol_TabHovered, accentHover);
+        push(ImGuiCol_TabActive, accentActive);
+        push(ImGuiCol_TabUnfocused, accentSoft);
+        push(ImGuiCol_TabUnfocusedActive, accentHover);
+
+        // Column resize bars / separators
+        push(ImGuiCol_Separator, accentSoft);
+        push(ImGuiCol_SeparatorHovered, accentHover);
+        push(ImGuiCol_SeparatorActive, accentActive);
+    }
+
+    ~ChaosThemeScope() {
+        if (colorCount > 0) {
+            ImGui::PopStyleColor(colorCount);
+        }
+
+        UIWidgets::PopStyleButton();
+        UIWidgets::PopStyleCheckbox();
+        UIWidgets::PopStyleInput();
+    }
+};
+
+static bool CC_DrawMinusSliderPlusInt(const char* id, int* value, int minV, int maxV, const char* format = nullptr) {
+    bool changed = false;
+
+    const float btnW = ImGui::GetFrameHeight();
+    const float spacing = ImGui::GetStyle().ItemSpacing.x;
+
+    if (UIWidgets::Button("-", UIWidgets::ButtonOptions().Color(THEME_COLOR).Size(ImVec2(btnW, 0)))) {
+        int nv = std::max(minV, *value - 1);
+        changed |= (nv != *value);
+        *value = nv;
+    }
+
+    ImGui::SameLine(0.0f, spacing);
+
+    float avail = ImGui::GetContentRegionAvail().x;
+    float sliderW = avail - btnW - spacing;
+    sliderW = std::max(sliderW, 80.0f);
+
+    ImGui::SetNextItemWidth(sliderW);
+
+    ImGui::PushID(id);
+    if (format) {
+        changed |= ImGui::SliderInt("##slider", value, minV, maxV, format);
+    } else {
+        changed |= ImGui::SliderInt("##slider", value, minV, maxV);
+    }
+    ImGui::PopID();
+
+    ImGui::SameLine(0.0f, spacing);
+
+    if (UIWidgets::Button("+", UIWidgets::ButtonOptions().Color(THEME_COLOR).Size(ImVec2(btnW, 0)))) {
+        int nv = std::min(maxV, *value + 1);
+        changed |= (nv != *value);
+        *value = nv;
+    }
+
+    return changed;
+}
+
 void CrowdControl::DrawChaosUi() {
-    // Top controls
+    ChaosThemeScope theme; // Top controls
     bool enabled = CVarGetInteger(CVAR_CC_CHAOS_ENABLED, 0) != 0;
     if (ImGui::Checkbox("Enable Chaos Mode", &enabled)) {
         CVarSetInteger(CVAR_CC_CHAOS_ENABLED, enabled ? 1 : 0);
@@ -1883,45 +2019,27 @@ void CrowdControl::DrawChaosUi() {
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Min Delay (s)");
     ImGui::SameLine();
-    if (ImGui::SmallButton("-##min")) {
-        minS = std::max(1, minS - 1);
-        if (maxS < minS)
+
+    ImGui::PushID("ChaosMinDelayRow");
+    if (CC_DrawMinusSliderPlusInt("minDelay", &minS, 1, 600)) {
+        if (maxS < minS) {
             maxS = minS;
+        }
     }
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(260.0f);
-    if (ImGui::SliderInt("##ChaosMinDelay", &minS, 1, 600)) {
-        if (maxS < minS)
-            maxS = minS;
-    }
-    ImGui::SameLine();
-    if (ImGui::SmallButton("+##min")) {
-        minS = std::min(600, minS + 1);
-        if (maxS < minS)
-            maxS = minS;
-    }
+    ImGui::PopID();
 
     // Max delay
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Max Delay (s)");
     ImGui::SameLine();
-    if (ImGui::SmallButton("-##max")) {
-        maxS = std::max(1, maxS - 1);
-        if (maxS < minS)
+
+    ImGui::PushID("ChaosMaxDelayRow");
+    if (CC_DrawMinusSliderPlusInt("maxDelay", &maxS, 1, 600)) {
+        if (maxS < minS) {
             maxS = minS;
+        }
     }
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(260.0f);
-    if (ImGui::SliderInt("##ChaosMaxDelay", &maxS, 1, 600)) {
-        if (maxS < minS)
-            maxS = minS;
-    }
-    ImGui::SameLine();
-    if (ImGui::SmallButton("+##max")) {
-        maxS = std::min(600, maxS + 1);
-        if (maxS < minS)
-            maxS = minS;
-    }
+    ImGui::PopID();
 
     if (CVarGetInteger(CVAR_CC_CHAOS_MIN_SECONDS, 20) != minS) {
         CVarSetInteger(CVAR_CC_CHAOS_MIN_SECONDS, minS);
@@ -2123,25 +2241,7 @@ void CrowdControl::DrawChaosUi() {
 
                         ImGui::PushID(def.code);
 
-                        const float buttonW = ImGui::GetFrameHeight();
-                        const float spacing = ImGui::GetStyle().ItemSpacing.x;
-
-                        float avail = ImGui::GetContentRegionAvail().x;
-                        float sliderW = avail - (buttonW * 2.0f) - (spacing * 2.0f);
-                        sliderW = std::max(sliderW, 80.0f);
-
-                        if (ImGui::SmallButton("-")) {
-                            weight = std::max(0, weight - 1);
-                        }
-                        ImGui::SameLine();
-
-                        ImGui::SetNextItemWidth(sliderW);
-                        ImGui::SliderInt("##w", &weight, 0, 100);
-                        ImGui::SameLine();
-
-                        if (ImGui::SmallButton("+")) {
-                            weight = std::min(100, weight + 1);
-                        }
+                        CC_DrawMinusSliderPlusInt("weight", &weight, 0, 100);
 
                         ImGui::PopID();
 
@@ -2242,34 +2342,16 @@ void CrowdControl::DrawChaosUi() {
                         ImGui::TableSetColumnIndex(1);
                         ImGui::PushID(def.code);
 
-                        const float buttonW = ImGui::GetFrameHeight();
-                        const float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
-
-                        float avail = ImGui::GetContentRegionAvail().x;
-                        float sliderW = avail - (buttonW * 2.0f) - (spacing * 2.0f);
-                        sliderW = std::max(sliderW, 80.0f);
-
                         int durSec = CVarGetInteger(durationKey.c_str(), def.defaultDurationSeconds);
-                        int sliderSec = std::clamp(durSec, 0, 9999);
-
-                        // Left button
-                        if (ImGui::SmallButton("-")) {
-                            sliderSec = std::max(0, sliderSec - 1);
-                            durSec = sliderSec;
+                        if (durSec < 0) {
+                            durSec = 0;
                         }
-                        ImGui::SameLine(0.0f, spacing);
 
-                        // Slider fills the middle
-                        ImGui::SetNextItemWidth(sliderW);
-                        if (ImGui::SliderInt("##dur", &sliderSec, 0, 120, "%ds")) {
-                            durSec = sliderSec;
-                        }
-                        ImGui::SameLine(0.0f, spacing);
+                        // UI range clamp (slider is 0..120)
+                        int uiSec = std::clamp(durSec, 0, 120);
 
-                        // Right button
-                        if (ImGui::SmallButton("+")) {
-                            sliderSec = std::min(120, sliderSec + 1);
-                            durSec = sliderSec;
+                        if (CC_DrawMinusSliderPlusInt("dur", &uiSec, 0, 120, "%ds")) {
+                            durSec = uiSec;
                         }
 
                         ImGui::PopID();

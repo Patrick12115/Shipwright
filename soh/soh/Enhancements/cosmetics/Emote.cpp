@@ -163,7 +163,7 @@ void RegisterEmote() {
 
 void DrawEmoteConfiguration(WidgetInfo& info) {
     ImGui::Text("Hold L button and press a C-button to select an emote");
-    UIWidgets::CVarCheckbox("Enabled", "gEmoteWheel.Enabled");
+    UIWidgets::CVarCheckbox("Enabled", "gEmoteWheel.Enabled", UIWidgets::CheckboxOptions().Color(THEME_COLOR));
 
     if (!CVarGetInteger("gEmoteWheel.Enabled", 0)) {
         return;
@@ -197,7 +197,7 @@ void DrawEmoteConfiguration(WidgetInfo& info) {
         ImGui::Text("%s Slot", slotNames[i]);
 
         std::string currentAnimName = GetAnimationDisplayName(emoteSlots[i].animationPath);
-        UIWidgets::PushStyleCombobox();
+        UIWidgets::PushStyleCombobox(THEME_COLOR);
         if (ImGui::BeginCombo("Animation", currentAnimName.c_str())) {
             for (const auto& animPath : availableAnimations) {
                 bool isSelected = (emoteSlots[i].animationPath == animPath);
@@ -216,7 +216,7 @@ void DrawEmoteConfiguration(WidgetInfo& info) {
 
         // Play once checkbox
         bool playOnce = emoteSlots[i].playOnce;
-        UIWidgets::PushStyleCheckbox();
+        UIWidgets::PushStyleCheckbox(THEME_COLOR);
         if (ImGui::Checkbox("Play Once", &playOnce)) {
             emoteSlots[i].playOnce = playOnce;
             SaveEmoteConfiguration();
@@ -226,7 +226,7 @@ void DrawEmoteConfiguration(WidgetInfo& info) {
         // Speed slider
         float speed = emoteSlots[i].speed;
         ImGui::SetNextItemWidth(200.0f);
-        UIWidgets::PushStyleSlider();
+        UIWidgets::PushStyleSlider(THEME_COLOR);
         if (ImGui::SliderFloat("Speed", &speed, 0.1f, 3.0f, "%.2f")) {
             emoteSlots[i].speed = speed;
             SaveEmoteConfiguration();

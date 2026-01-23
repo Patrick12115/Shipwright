@@ -1,6 +1,7 @@
 #include "SohMenu.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/SkipGIAnimations.h"
+#include "soh/SohGui/SohGui.hpp"
 
 namespace SohGui {
 
@@ -122,6 +123,7 @@ void SohMenu::AddMenuRandomizer() {
             info.isHidden = (setting != SGIA_ADVANCED);
         })
         .CustomFunction([](WidgetInfo& info) {
+            PushStyleInput(THEME_COLOR);
             // Split available width across two buttons, accounting for spacing
             const float avail = ImGui::GetContentRegionAvail().x;
             const float spacing = ImGui::GetStyle().ItemSpacing.x;
@@ -146,6 +148,7 @@ void SohMenu::AddMenuRandomizer() {
                 }
                 Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
             }
+            PopStyleInput();
         });
 
     AddWidget(path, "Advanced Skip GI Category Grid", WIDGET_CUSTOM)
@@ -154,6 +157,8 @@ void SohMenu::AddMenuRandomizer() {
             info.isHidden = (setting != SGIA_ADVANCED);
         })
         .CustomFunction([](WidgetInfo& info) {
+            PushStyleInput(THEME_COLOR);
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.75f));
             const float avail = ImGui::GetContentRegionAvail().x;
             const float spacing = ImGui::GetStyle().ItemSpacing.x;
             const float colW = (avail - spacing) * 0.5f;
@@ -190,6 +195,8 @@ void SohMenu::AddMenuRandomizer() {
 
                 ImGui::EndTable();
             }
+            ImGui::PopStyleColor();
+            PopStyleInput();
         });
 
     // Plandomizer
