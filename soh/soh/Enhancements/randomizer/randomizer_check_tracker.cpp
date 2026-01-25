@@ -1088,15 +1088,37 @@ void CheckTrackerWindow::DrawElement() {
     }
     UIWidgets::PushStyleCombobox(THEME_COLOR);
     if (CVarGetInteger(CVAR_TRACKER_CHECK("SearchInputVisible"), 1)) {
-        if (checkSearch.Draw("", ImGui::GetContentRegionAvail().x - 6)) {
+
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float clearTextW = ImGui::CalcTextSize("Clear").x;
+        const float clearBtnW = clearTextW + (style.FramePadding.x * 2.0f);
+        const float spacingW = style.ItemSpacing.x;
+
+        const float inputW = ImGui::GetContentRegionAvail().x - (clearBtnW + spacingW);
+        const float finalInputW = (inputW > 0.0f) ? inputW : 0.0f;
+
+        if (checkSearch.Draw("", finalInputW)) {
             UpdateFilters();
         }
-        std::string checkSearchText = "";
-        checkSearchText = checkSearch.InputBuf;
-        checkSearchText.erase(std::remove(checkSearchText.begin(), checkSearchText.end(), ' '), checkSearchText.end());
-        if (checkSearchText.length() < 1) {
-            ImGui::SameLine(20.0f);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Search...");
+
+        const ImVec2 inputMin = ImGui::GetItemRectMin();
+        const ImVec2 inputMax = ImGui::GetItemRectMax();
+
+        ImGui::SameLine(0.0f, spacingW);
+
+        if (UIWidgets::Button("Clear", UIWidgets::ButtonOptions({ { .tooltip = "Clear the search field" } })
+                                           .Color(THEME_COLOR)
+                                           .Size(UIWidgets::Sizes::Inline))) {
+            checkSearch.Clear();
+            UpdateFilters();
+            doAreaScroll = true;
+        }
+
+        // --- Placeholder overlay (drawn inside the INPUT rect, not the button rect) ---
+        if (checkSearch.InputBuf[0] == '\0') {
+            ImGui::GetWindowDrawList()->AddText(
+                ImVec2(inputMin.x + style.FramePadding.x, inputMin.y + style.FramePadding.y),
+                ImGui::GetColorU32(ImVec4(1, 1, 1, 0.4f)), "Search...");
         }
     }
     UIWidgets::PopStyleCombobox();
