@@ -53,6 +53,10 @@ void SohMenu::AddMenuDevTools() {
         .CVar("gDeveloperTools.NoClipBtn")
         .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0); })
         .Options(BtnSelectorOptions().DefaultValue(BTN_L | BTN_DRIGHT));
+    AddWidget(path, "Void Button Combination:", WIDGET_CVAR_BTN_SELECTOR)
+        .CVar("gDeveloperTools.VoidBtn")
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0); })
+        .Options(BtnSelectorOptions().DefaultValue(0));
     AddWidget(path, "OoT Registry Editor", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_DEVELOPER_TOOLS("RegEditEnabled"))
         .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0); })
