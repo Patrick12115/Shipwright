@@ -696,6 +696,8 @@ void Play_Init(GameState* thisx) {
     }
 
     Actor_Spawn(&play->actorCtx, play, gEnChristmasDecoId, 0, 0, 0, 0, 0, 0, 0, true);
+    // nextEntranceIndex was not initialized, so the previous value was carried over during soft resets.
+    gPlayState->nextEntranceIndex = gSaveContext.entranceIndex;
 }
 
 void Play_Update(PlayState* play) {
