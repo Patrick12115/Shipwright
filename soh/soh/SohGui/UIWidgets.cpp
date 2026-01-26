@@ -1242,20 +1242,13 @@ bool CVarBtnSelector(const char* label, const char* cvarName, const BtnSelectorO
 
     int32_t value = CVarGetInteger(cvarName, options.defaultValue);
 
-    SPDLOG_INFO("[BtnCombo UI] cvar='{}' raw={} raw_hex=0x{:08X} default={} default_hex=0x{:08X}", cvarName, value,
-                (uint32_t)value, options.defaultValue, (uint32_t)options.defaultValue);
-
     // If the cvar system uses -1 as "unset", show the real defaults instead of "all buttons".
     if (value == -1) {
-        SPDLOG_INFO("[BtnCombo UI] cvar='{}' raw is -1 (0xFFFFFFFF) -> using default", cvarName);
         value = options.defaultValue;
     }
 
-    SPDLOG_INFO("[BtnCombo UI] cvar='{}' value_for_ui={} value_for_ui_hex=0x{:08X}", cvarName, value, (uint32_t)value);
 
     if (BtnSelector(label, &value, options)) {
-        SPDLOG_INFO("[BtnCombo UI] cvar='{}' NEW value={} new_hex=0x{:08X}", cvarName, value, (uint32_t)value);
-
         CVarSetInteger(cvarName, value);
         Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
         ShipInit::Init(cvarName);
