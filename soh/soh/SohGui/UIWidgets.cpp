@@ -1247,7 +1247,6 @@ bool CVarBtnSelector(const char* label, const char* cvarName, const BtnSelectorO
         value = options.defaultValue;
     }
 
-
     if (BtnSelector(label, &value, options)) {
         CVarSetInteger(cvarName, value);
         Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
