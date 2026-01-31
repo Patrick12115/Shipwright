@@ -507,7 +507,7 @@ void SohMenu::AddMenuSettings() {
             Notification::Emit({
                 .itemIcon = "__OTR__textures/icon_item_24_static/gQuestIconGoldSkulltulaTex",
                 .prefix = "This",
-                .message = "is a",
+                .message = " is a ",
                 .suffix = "test.",
             });
         })
