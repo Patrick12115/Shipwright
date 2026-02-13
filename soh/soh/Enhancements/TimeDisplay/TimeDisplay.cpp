@@ -188,14 +188,12 @@ void DrawStandaloneGameplayTimer() {
                 ImGui::Image(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(
                                  digitList[textureIndex].first),
                              ImVec2(8.0f * gameplayFontScale, 8.0f * gameplayFontScale), ImVec2(0, 0.5f), ImVec2(1, 1),
-                             textColor,
-                             ImVec4(0, 0, 0, 0));
+                             textColor, ImVec4(0, 0, 0, 0));
             } else {
                 ImGui::Image(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(
                                  digitList[textureIndex].first),
                              ImVec2(8.0f * gameplayFontScale, 16.0f * gameplayFontScale), ImVec2(0, 0), ImVec2(1, 1),
-                             textColor,
-                             ImVec4(0, 0, 0, 0));
+                             textColor, ImVec4(0, 0, 0, 0));
             }
             ImGui::SameLine(0, 0);
         }
