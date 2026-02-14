@@ -1908,7 +1908,7 @@ void SohMenu::AddMenuEnhancements() {
         .RaceDisable(false)
         .WindowName("Additional Timers")
         .Options(WindowButtonOptions().Tooltip("Enables the separate Additional Timers Window."));
-    AddWidget(path, "Font Scale: %.2fx", WIDGET_CVAR_SLIDER_FLOAT)
+    AddWidget(path, "Global Scale: %.2fx", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar(CVAR_TIME_DISPLAY("FontScale"))
         .RaceDisable(false)
         .Callback([](WidgetInfo& info) { TimeDisplayInitSettings(); })
@@ -1917,6 +1917,18 @@ void SohMenu::AddMenuEnhancements() {
         .CVar(CVAR_TIME_DISPLAY("ShowWindowBG"))
         .RaceDisable(false)
         .Callback([](WidgetInfo& info) { TimeDisplayInitSettings(); });
+
+    AddWidget(path, "Gameplay Timer Options", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "Separate Gameplay Timer", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_TIME_DISPLAY("SeparateGameplay"))
+        .RaceDisable(false)
+        .Callback([](WidgetInfo& info) { TimeDisplayInitSettings(); });
+    AddWidget(path, "Scale: %.2fx", WIDGET_CVAR_SLIDER_FLOAT)
+        .CVar(CVAR_TIME_DISPLAY("GameplayFontScale"))
+        .RaceDisable(false)
+        .Callback([](WidgetInfo& info) { TimeDisplayInitSettings(); })
+        .Options(FloatSliderOptions().Min(1.0f).Max(5.0f).DefaultValue(1.0f).Format("%.2fx"));
+    AddWidget(path, "Display Options", WIDGET_SEPARATOR_TEXT);
     for (auto& timer : timeDisplayList) {
         AddWidget(path, timer.timeLabel, WIDGET_CVAR_CHECKBOX)
             .RaceDisable(false)
