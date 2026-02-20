@@ -97,7 +97,19 @@ void Window::Draw() {
             contentH = (iconSize > contentH) ? iconSize : contentH;
         }
 
-        contentW += prefixSz.x + msgSz.x + suffixSz.x;
+        const float segSpacing = ImGui::GetStyle().ItemSpacing.x;
+
+        float spacingW = 0.0f;
+
+        if (hasPrefix && !n.message.empty())
+            spacingW += segSpacing;
+
+        if (hasSuffix)
+            spacingW += segSpacing;
+
+        spacingW += segSpacing;
+
+        contentW += prefixSz.x + msgSz.x + suffixSz.x + spacingW;
         // Height is max of text line height and icon
         const float textH = (prefixSz.y > msgSz.y ? prefixSz.y : msgSz.y);
         const float textH2 = (suffixSz.y > textH ? suffixSz.y : textH);
@@ -149,13 +161,14 @@ void Window::Draw() {
 
         if (hasPrefix) {
             dl->AddText(font, fontSize, cursor, ImGui::GetColorU32(withAlpha(n.prefixColor)), n.prefix.c_str());
-            cursor.x += prefixSz.x;
+            cursor.x += prefixSz.x + segSpacing;
         }
 
         dl->AddText(font, fontSize, cursor, ImGui::GetColorU32(withAlpha(n.messageColor)), n.message.c_str());
         cursor.x += msgSz.x;
 
         if (hasSuffix) {
+            cursor.x += segSpacing;
             dl->AddText(font, fontSize, cursor, ImGui::GetColorU32(withAlpha(n.suffixColor)), n.suffix.c_str());
         }
 
