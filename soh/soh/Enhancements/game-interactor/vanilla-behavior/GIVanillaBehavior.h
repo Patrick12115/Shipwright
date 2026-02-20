@@ -504,6 +504,14 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*EnArrow`
+    VB_EN_ARROW_MAGIC_CONSUMPTION,
+
+    // #### `result`
+    // ```c
     // !(this->stateFlags3 & PLAYER_STATE3_PAUSE_ACTION_FUNC)
     // ```
     // #### `args`
@@ -582,6 +590,14 @@ typedef enum {
     // #### `args`
     // - None
     VB_GANON_HEAL_BEFORE_FIGHT,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_GANONDORF_DECIDE_TO_FIGHT,
 
     // #### `result`
     // ```c
@@ -1747,6 +1763,16 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*Player`
+    // - `int32_t` (magicArrowType)
+    // - `*int32_t` (arrowType)
+    VB_PLAYER_ARROW_MAGIC_CONSUMPTION,
+
+    // #### `result`
+    // ```c
     // item == ITEM_SAW
     // ```
     // #### `args`
@@ -1760,6 +1786,14 @@ typedef enum {
     // #### `args`
     // - `*ObjTsubo`
     VB_POT_DROP_ITEM,
+
+    // #### `result`
+    // ```c
+    // actor.params & 1) == ROCK_SMALL
+    // ```
+    // #### `args`
+    // - `*EnIshi`
+    VB_ROCK_DROP_ITEM,
 
     // #### `result`
     // ```c
@@ -2257,6 +2291,16 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - `*Actor`
+    // - `u8` (damageEffect)
+    // - `u8` (damage)
+    VB_APPLY_DAMAGE_TO_ACTOR,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `*EnRr`
     VB_LIKE_LIKE_GRAB_PLAYER,
 
@@ -2303,6 +2347,22 @@ typedef enum {
     // #### `args`
     // - `*DoorShutter`
     VB_BE_NEAR_DOOR_SHUTTER,
+
+    // #### `result`
+    // ```c
+    // false
+    // ```
+    // #### `args`
+    // - None
+    VB_SKIP_FORCE_PLAY_OCARINA,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_HOVER_WITH_ISG,
 
     // #### `result`
     // ```c
@@ -2381,6 +2441,18 @@ typedef enum {
     // - `*Player`
     // - `*Color_RGB8`
     VB_APPLY_TUNIC_COLOR,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*int32_t` // ItemID
+    VB_USE_ITEM,
+
+    VB_DRAW_SKEL_LIMB,
+    VB_DRAW_SKEL_FLEX_LIMB,
+    VB_PLAYER_ROLL,
 
 } GIVanillaBehavior;
 

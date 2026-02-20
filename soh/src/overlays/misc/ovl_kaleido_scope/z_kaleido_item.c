@@ -554,6 +554,8 @@ void KaleidoScope_DrawItemSelect(PlayState* play) {
                         pauseCtx->cursorX[PAUSE_ITEM] = cursorX;
                         pauseCtx->cursorY[PAUSE_ITEM] = cursorY;
                         moveCursorResult = 1;
+
+                        GameInteractor_ExecuteOnKaleidoMoveCursorFromSpecialPos(pauseCtx, &cursorItem);
                         break;
                     }
 
@@ -590,6 +592,8 @@ void KaleidoScope_DrawItemSelect(PlayState* play) {
                         pauseCtx->cursorX[PAUSE_ITEM] = cursorX;
                         pauseCtx->cursorY[PAUSE_ITEM] = cursorY;
                         moveCursorResult = 1;
+
+                        GameInteractor_ExecuteOnKaleidoMoveCursorFromSpecialPos(pauseCtx, &cursorItem);
                         break;
                     }
 
@@ -1189,6 +1193,21 @@ void KaleidoScope_UpdateItemEquip(PlayState* play) {
                 }
                 if (!CVarGetInteger(CVAR_ENHANCEMENT("SeparateArrows"), 0)) {
                     pauseCtx->equipTargetSlot = SLOT_BOW;
+                }
+            }
+
+            if (CVarGetInteger("gHoliday.Gameplay.BombArrows.Enabled", 0)) {
+                if (pauseCtx->equipTargetSlot == SLOT_BOW) {
+                    CVarSetInteger("gHoliday.Gameplay.BombArrows.Active", 0);
+                }
+                u8 equipped_slot = gSaveContext.equips.cButtonSlots[pauseCtx->equipTargetCBtn];
+                if (!CVarGetInteger("gHoliday.Gameplay.BombArrows.Active", 0) &&
+                    pauseCtx->equipTargetItem == ITEM_BOMB && equipped_slot == SLOT_BOW) {
+                    CVarSetInteger("gHoliday.Gameplay.BombArrows.Active", 1);
+                    pauseCtx->equipTargetItem = ITEM_BOW;
+                    pauseCtx->equipTargetSlot = SLOT_BOW;
+                    Audio_PlaySoundGeneral(NA_SE_SY_SET_FIRE_ARROW, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
                 }
             }
 

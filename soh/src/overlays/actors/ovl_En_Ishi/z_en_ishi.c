@@ -8,6 +8,7 @@
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
 #include "soh/OTRGlobals.h"
+#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #include "vt.h"
 
@@ -251,7 +252,7 @@ void EnIshi_SpawnDustLarge(EnIshi* this, PlayState* play) {
 void EnIshi_DropCollectible(EnIshi* this, PlayState* play) {
     s16 dropParams;
 
-    if ((this->actor.params & 1) == ROCK_SMALL) {
+    if (GameInteractor_Should(VB_ROCK_DROP_ITEM, (this->actor.params & 1) == ROCK_SMALL, this)) {
         dropParams = (this->actor.params >> 8) & 0xF;
 
         if (dropParams >= 0xD) {
@@ -335,7 +336,8 @@ void EnIshi_Init(Actor* thisx, PlayState* play) {
     // If dungeon entrance randomizer is on, remove the grey boulders that normally
     // block child Link from reaching the Fire Temple entrance.
     if (type == ROCK_LARGE && IS_RANDO &&
-        Randomizer_GetSettingValue(RSK_SHUFFLE_DUNGEON_ENTRANCES) != RO_DUNGEON_ENTRANCE_SHUFFLE_OFF &&
+        (Randomizer_GetSettingValue(RSK_SHUFFLE_DUNGEON_ENTRANCES) != RO_DUNGEON_ENTRANCE_SHUFFLE_OFF ||
+         CVarGetInteger(CVAR_REMOTE_ARCHIPELAGO("ShuffleEntrances"), 0)) &&
         play->sceneNum == SCENE_DEATH_MOUNTAIN_CRATER) { // Death Mountain Creater
         Actor_Kill(&this->actor);
     }

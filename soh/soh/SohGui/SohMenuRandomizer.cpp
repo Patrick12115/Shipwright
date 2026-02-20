@@ -1,5 +1,7 @@
 #include "SohMenu.h"
 #include "soh/OTRGlobals.h"
+#include "soh/Enhancements/SkipGIAnimations.h"
+#include "soh/SohGui/SohGui.hpp"
 
 namespace SohGui {
 
@@ -9,7 +11,8 @@ using namespace UIWidgets;
 static const std::unordered_map<int32_t, const char*> skipGetItemAnimationOptions = {
     { SGIA_DISABLED, "Disabled" },
     { SGIA_JUNK, "Junk Items" },
-    { SGIA_ALL, "All Items" },
+    { SGIA_ALL, "All but Ice Traps" },
+    { SGIA_ADVANCED, "Advanced" },
 };
 
 void SohMenu::AddMenuRandomizer() {
@@ -28,6 +31,7 @@ void SohMenu::AddMenuRandomizer() {
     // Enhancements
     path.sidebarName = "Enhancements";
     AddSidebarEntry("Randomizer", path.sidebarName, 3);
+    path.column = SECTION_COLUMN_1;
     AddWidget(path, "Randomizer Enhancements", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Rando-Relevant Navi Hints", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_RANDOMIZER_ENHANCEMENT("RandoRelevantNavi"))
@@ -84,19 +88,116 @@ void SohMenu::AddMenuRandomizer() {
         .Options(CheckboxOptions().Tooltip(
             "When shuffling boss souls, they'll appear as a simpler model instead of showing the boss' models."
             "This might make boss souls more distinguishable from a distance, and can help with performance."));
+    AddWidget(path, "Signs Hint Entrances", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_RANDOMIZER_ENHANCEMENT("EntrancesOnSigns"))
+        .Options(CheckboxOptions().Tooltip("If enabled, signs near loading zones will tell you where they lead to."));
+    AddWidget(path, "No Junk Notifications", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_RANDOMIZER_ENHANCEMENT("NoJunkNotifications"));
+    path.column = SECTION_COLUMN_2;
     AddWidget(path, "Skip Get Item Animations", WIDGET_CVAR_COMBOBOX)
         .CVar(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"))
         .Options(ComboboxOptions().ComboMap(skipGetItemAnimationOptions).DefaultIndex(SGIA_JUNK));
     AddWidget(path, "Item Scale: %.2f", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimationScale"))
         .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                !CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK);
+            s32 setting = CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK);
+
+            // Only enable scale slider when *some* skipping mode is active (Junk / All / Advanced),
+            // and keep it disabled when set to "None" if you have that mode.
+            info.options->disabled = (setting == SGIA_DISABLED);
             info.options->disabledTooltip =
                 "This slider only applies when using the \"Skip Get Item Animations\" option.";
         })
         .Options(FloatSliderOptions().Min(5.0f).Max(15.0f).Format("%.2f").DefaultValue(10.0f).Tooltip(
             "The size of the item when it is picked up."));
+
+    AddWidget(path, "Advanced Skip GI Categories", WIDGET_SEPARATOR_TEXT).PreFunc([](WidgetInfo& info) {
+        s32 setting = CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK);
+        // Only show the list when the main combo is set to Advanced
+        info.isHidden = (setting != SGIA_ADVANCED);
+    });
+
+    AddWidget(path, "Advanced Skip GI Bulk Actions", WIDGET_CUSTOM)
+        .PreFunc([](WidgetInfo& info) {
+            s32 setting = CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK);
+            info.isHidden = (setting != SGIA_ADVANCED);
+        })
+        .CustomFunction([](WidgetInfo& info) {
+            PushStyleInput(THEME_COLOR);
+            // Split available width across two buttons, accounting for spacing
+            const float avail = ImGui::GetContentRegionAvail().x;
+            const float spacing = ImGui::GetStyle().ItemSpacing.x;
+            const float half = (avail - spacing) * 0.5f;
+
+            if (UIWidgets::Button("Skip All", UIWidgets::ButtonOptions()
+                                                  .Size(ImVec2(half, 0))
+                                                  .Tooltip("Enable all Advanced Skip GI categories."))) {
+                for (int i = 0; i < SKIP_GI_ADVANCED_CATEGORY_COUNT; ++i) {
+                    CVarSetInteger(skipGIAdvancedCVarList[i], 1);
+                }
+                Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            }
+
+            ImGui::SameLine();
+
+            if (UIWidgets::Button("Clear All", UIWidgets::ButtonOptions()
+                                                   .Size(ImVec2(half, 0))
+                                                   .Tooltip("Disable all Advanced Skip GI categories."))) {
+                for (int i = 0; i < SKIP_GI_ADVANCED_CATEGORY_COUNT; ++i) {
+                    CVarSetInteger(skipGIAdvancedCVarList[i], 0);
+                }
+                Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            }
+            PopStyleInput();
+        });
+
+    AddWidget(path, "Advanced Skip GI Category Grid", WIDGET_CUSTOM)
+        .PreFunc([](WidgetInfo& info) {
+            s32 setting = CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("TimeSavers.SkipGetItemAnimation"), SGIA_JUNK);
+            info.isHidden = (setting != SGIA_ADVANCED);
+        })
+        .CustomFunction([](WidgetInfo& info) {
+            PushStyleInput(THEME_COLOR);
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.75f));
+            const float avail = ImGui::GetContentRegionAvail().x;
+            const float spacing = ImGui::GetStyle().ItemSpacing.x;
+            const float colW = (avail - spacing) * 0.5f;
+
+            if (ImGui::BeginTable("##SkipGIAdvancedTable", 2,
+                                  ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoSavedSettings)) {
+
+                ImGui::TableSetupColumn("##left", ImGuiTableColumnFlags_WidthFixed, colW);
+                ImGui::TableSetupColumn("##right", ImGuiTableColumnFlags_WidthFixed, colW);
+
+                for (int i = 0; i < SKIP_GI_ADVANCED_CATEGORY_COUNT; i += 2) {
+                    ImGui::TableNextRow();
+
+                    // Left column
+                    ImGui::TableSetColumnIndex(0);
+                    {
+                        bool v = CVarGetInteger(skipGIAdvancedCVarList[i], 0) != 0;
+                        if (ImGui::Checkbox(skipGIAdvancedNameList[i], &v)) {
+                            CVarSetInteger(skipGIAdvancedCVarList[i], v ? 1 : 0);
+                            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+                        }
+                    }
+
+                    // Right column (if present)
+                    if (i + 1 < SKIP_GI_ADVANCED_CATEGORY_COUNT) {
+                        ImGui::TableSetColumnIndex(1);
+                        bool v = CVarGetInteger(skipGIAdvancedCVarList[i + 1], 0) != 0;
+                        if (ImGui::Checkbox(skipGIAdvancedNameList[i + 1], &v)) {
+                            CVarSetInteger(skipGIAdvancedCVarList[i + 1], v ? 1 : 0);
+                            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+                        }
+                    }
+                }
+
+                ImGui::EndTable();
+            }
+            ImGui::PopStyleColor();
+            PopStyleInput();
+        });
 
     // Plandomizer
     path.sidebarName = "Plandomizer";

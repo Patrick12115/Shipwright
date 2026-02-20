@@ -1,5 +1,6 @@
 #include "TimeDisplay.h"
 #include "soh/Enhancements/gameplaystats.h"
+#include "soh/Enhancements/Holiday/Fredomato.h"
 #include <global.h>
 
 #include "assets/textures/parameter_static/parameter_static.h"
@@ -14,7 +15,9 @@ extern PlayState* gPlayState;
 uint64_t GetUnixTimestamp();
 }
 
-float fontScale = 1.0f;
+static bool separateGameplay = false;
+static float gameplayFontScale = 1.0f;
+static float fontScale = 1.0f;
 std::string timeDisplayTime = "";
 ImTextureID textureDisplay = 0;
 ImVec4 windowBG = ImVec4(0, 0, 0, 0.5f);
@@ -40,10 +43,12 @@ const std::vector<TimeObject> timeDisplayList = {
     { DISPLAY_IN_GAME_TIMER, "Display Gameplay Timer", CVAR_TIME_DISPLAY("Timers.InGameTimer") },
     { DISPLAY_TIME_OF_DAY, "Display Time of Day", CVAR_TIME_DISPLAY("Timers.TimeofDay") },
     { DISPLAY_CONDITIONAL_TIMER, "Display Conditional Timer", CVAR_TIME_DISPLAY("Timers.HotWater") },
-    { DISPLAY_NAVI_TIMER, "Display Navi Timer", CVAR_TIME_DISPLAY("Timers.NaviTimer") }
+    { DISPLAY_NAVI_TIMER, "Display Navi Timer", CVAR_TIME_DISPLAY("Timers.NaviTimer") },
+    { DISPLAY_FRED_QUEST, "Display Fred's Quest", CVAR_TIME_DISPLAY("Timers.FredsQuest") }
 };
 
 static std::vector<TimeObject> activeTimers;
+static TimeObject gameplayTimer = timeDisplayList[DISPLAY_IN_GAME_TIMER];
 
 std::string convertDayTime(uint32_t dayTime) {
     uint32_t totalSeconds = 24 * 60 * 60;
@@ -87,6 +92,7 @@ static void TimeDisplayGetTimer(uint32_t timeID) {
         case DISPLAY_IN_GAME_TIMER:
             textureDisplay = Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName("GAMEPLAY_TIMER");
             timeDisplayTime = formatTimeDisplay(GAMEPLAYSTAT_TOTAL_TIME).c_str();
+            textColor = gSaveContext.ship.stats.gameComplete ? COLOR_LIGHT_GREEN : COLOR_WHITE;
             break;
         case DISPLAY_TIME_OF_DAY:
             if (gSaveContext.dayTime >= DAY_BEGINS && gSaveContext.dayTime < NIGHT_BEGINS) {
@@ -134,6 +140,11 @@ static void TimeDisplayGetTimer(uint32_t timeID) {
             }
             textureDisplay = Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName("NAVI_TIMER");
             break;
+        case DISPLAY_FRED_QUEST:
+            timeDisplayTime = std::to_string(FredsQuestWoodOnHand) + "/" + std::to_string(FredsQuestWoodCollected) +
+                              "/" + std::to_string(CVarGetInteger("gHoliday.Fredomato.FredsQuest.WoodNeeded", 300));
+            textureDisplay = Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName("ITEM_STICK");
+            break;
         default:
             break;
     }
@@ -146,19 +157,50 @@ void TimeDisplayUpdateDisplayOptions() {
             activeTimers.push_back(timer);
         }
     }
+}
 
-    // if (pushBack) {
-    //     activeTimers.push_back(timeDisplayList[timeID]);
-    // } else {
-    //     uint32_t index = 0;
-    //     for (auto& check : activeTimers) {
-    //         if (check.timeID == timeID) {
-    //             activeTimers.erase(activeTimers.begin() + index);
-    //             return;
-    //         }
-    //         index++;
-    //     }
-    // }
+void DrawStandaloneGameplayTimer() {
+    ImGui::Begin("GameplayTimer", nullptr,
+                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing |
+                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+                     ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetWindowFontScale(gameplayFontScale);
+    ImGui::BeginTable("Gameplay Timer", 2, ImGuiTableFlags_NoClip);
+    ImGui::PushID(DISPLAY_IN_GAME_TIMER);
+    TimeDisplayGetTimer(DISPLAY_IN_GAME_TIMER);
+    ImGui::TableNextColumn();
+    ImGui::Image(textureDisplay, ImVec2(16.0f * gameplayFontScale, 16.0f * gameplayFontScale));
+    ImGui::TableNextColumn();
+    if (timeDisplayTime != "-:--") {
+        char* textToDecode = new char[timeDisplayTime.size() + 1];
+        textToDecode = std::strcpy(textToDecode, timeDisplayTime.c_str());
+        size_t textLength = timeDisplayTime.length();
+        uint16_t textureIndex = 0;
+
+        for (size_t i = 0; i < textLength; i++) {
+            if (textToDecode[i] == ':' || textToDecode[i] == '.') {
+                textureIndex = 10;
+            } else {
+                textureIndex = textToDecode[i] - '0';
+            }
+            if (textToDecode[i] == '.') {
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (8.0f * gameplayFontScale));
+                ImGui::Image(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(
+                                 digitList[textureIndex].first),
+                             ImVec2(8.0f * gameplayFontScale, 8.0f * gameplayFontScale), ImVec2(0, 0.5f), ImVec2(1, 1),
+                             textColor, ImVec4(0, 0, 0, 0));
+            } else {
+                ImGui::Image(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(
+                                 digitList[textureIndex].first),
+                             ImVec2(8.0f * gameplayFontScale, 16.0f * gameplayFontScale), ImVec2(0, 0), ImVec2(1, 1),
+                             textColor, ImVec4(0, 0, 0, 0));
+            }
+            ImGui::SameLine(0, 0);
+        }
+    }
+    ImGui::PopID();
+    ImGui::EndTable();
+    ImGui::End();
 }
 
 void TimeDisplayWindow::Draw() {
@@ -173,6 +215,10 @@ void TimeDisplayWindow::Draw() {
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.0f);
 
+    if (separateGameplay) {
+        DrawStandaloneGameplayTimer();
+    }
+
     ImGui::Begin("TimerDisplay", nullptr,
                  ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing |
                      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
@@ -183,11 +229,21 @@ void TimeDisplayWindow::Draw() {
     } else {
         ImGui::BeginTable("Timer List", 2, ImGuiTableFlags_NoClip);
         for (auto& timers : activeTimers) {
+            if (separateGameplay && timers.timeID == DISPLAY_IN_GAME_TIMER) {
+                continue;
+            }
+
             ImGui::PushID(timers.timeID);
             TimeDisplayGetTimer(timers.timeID);
             ImGui::TableNextColumn();
             ImGui::Image(textureDisplay, ImVec2(16.0f * fontScale, 16.0f * fontScale));
             ImGui::TableNextColumn();
+
+            if (timers.timeID == DISPLAY_FRED_QUEST) {
+                ImGui::Text("%s", timeDisplayTime.c_str());
+                ImGui::PopID();
+                continue;
+            }
 
             if (timeDisplayTime != "-:--") {
                 char* textToDecode = new char[timeDisplayTime.size() + 1];
@@ -227,6 +283,8 @@ void TimeDisplayWindow::Draw() {
 }
 
 void TimeDisplayInitSettings() {
+    separateGameplay = CVarGetInteger(CVAR_TIME_DISPLAY("SeparateGameplay"), 0);
+    gameplayFontScale = CVarGetFloat(CVAR_TIME_DISPLAY("GameplayFontScale"), 1.0f);
     fontScale = CVarGetFloat(CVAR_TIME_DISPLAY("FontScale"), 1.0f);
     if (fontScale < 1.0f) {
         fontScale = 1.0f;

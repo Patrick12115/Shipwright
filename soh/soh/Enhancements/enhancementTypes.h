@@ -18,6 +18,7 @@ typedef enum {
     SGIA_DISABLED,
     SGIA_JUNK,
     SGIA_ALL,
+    SGIA_ADVANCED,
     SGIA_SIZE,
 } SkipGetItemAnimationType;
 

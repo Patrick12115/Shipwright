@@ -45,6 +45,9 @@ WidgetInfo& SohMenu::AddWidget(WidgetPath& pathInfo, std::string widgetName, Wid
         case WIDGET_CVAR_SLIDER_FLOAT:
             widget.options = std::make_shared<FloatSliderOptions>();
             break;
+        case WIDGET_CVAR_BTN_SELECTOR:
+            widget.options = std::make_shared<BtnSelectorOptions>();
+            break;
         case WIDGET_SLIDER_INT:
         case WIDGET_CVAR_SLIDER_INT:
             widget.options = std::make_shared<IntSliderOptions>();
@@ -86,6 +89,9 @@ void SohMenu::InitElement() {
     AddMenuSettings();
     AddMenuEnhancements();
     AddMenuRandomizer();
+    AddMenuEntry("Holiday", CVAR_SETTING("Menu.HolidaySidebarSection"));
+    AddSidebarEntry("Holiday", "Gameplay", 2);
+    AddSidebarEntry("Holiday", "Visual", 2);
     AddMenuNetwork();
     AddMenuDevTools();
 

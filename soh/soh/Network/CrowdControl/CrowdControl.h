@@ -5,9 +5,15 @@
 #include <thread>
 #include <memory>
 #include <vector>
+#include <atomic>
+#include <string>
+#include <cstdint>
+#include <mutex>
+#include <nlohmann/json.hpp>
 
 #include "soh/Network/Network.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include <libultraship/libultraship.h>
 
 class CrowdControl : public Network {
   private:
@@ -50,26 +56,43 @@ class CrowdControl : public Network {
     };
 
     typedef struct Effect {
-        uint32_t id;
-        uint32_t spawnParams[2];
+        uint32_t id = 0;
+        uint32_t spawnParams[2] = { 0, 0 };
         uint32_t category = 0;
-        long timeRemaining;
-        GameInteractionEffectBase* giEffect;
+        long timeRemaining = 0;
+        GameInteractionEffectBase* giEffect = nullptr;
         std::string viewerName;
 
+        std::string effectCode;
+        std::string displayName;
+
         // Metadata used while executing (only for timed effects)
-        bool isPaused;
-        EffectResult lastExecutionResult;
+        bool isPaused = false;
+        bool runOnceWhenPossible = false; // for queued non-timed effects that must only fire once
+        bool isChaos = false;             // owned by offline Chaos loop; remote CC thread must ignore
+        EffectResult lastExecutionResult = EffectResult::Initiate;
     } Effect;
 
     std::thread ccThreadProcess;
 
+    std::atomic<bool> chaosThreadStarted{ false };
+    std::atomic<bool> chaosThreadExit{ false };
+    std::atomic<bool> chaosRunning{ false };
+    std::thread chaosThread;
+    std::mutex pendingRemovalsMutex;
+    std::vector<std::pair<RemovableGameInteractionEffect*, uint32_t>> pendingRemovals;
     std::vector<Effect*> activeEffects;
     std::mutex activeEffectsMutex;
 
+    void PumpPendingRemovals();
+    void EnsureChaosThreadStarted();
+    void ChaosLoop();
+    bool CanRunChaosNow();
+    void TriggerLocalEffectByCode(const char* effectCode, bool allowTimed);
+    void DrawChaosUi();
     void HandleRemoteData(nlohmann::json payload);
     void ProcessActiveEffects();
-
+    void ProcessActiveEffectsOnce();
     void EmitMessage(uint32_t eventId, long timeRemaining, EffectResult status);
     Effect* ParseMessage(nlohmann::json payload);
     EffectResult ExecuteEffect(Effect* effect);
@@ -78,10 +101,50 @@ class CrowdControl : public Network {
 
   public:
     static CrowdControl* Instance;
+    bool HasPendingWork();
     void Enable();
     void OnIncomingJson(nlohmann::json payload);
     void OnConnected();
     void OnDisconnected();
+    void SyncChaosStartup();
+    bool chaosStartupApplied = false;
+    void DrawChaosWindowContents();
+    void ClearTimedEffects();
+    void DrawEffectTimersWindowContents();
+    void MainThreadTick();
+};
+
+class CrowdControlChaosWindow : public Ship::GuiWindow {
+  public:
+    using GuiWindow::GuiWindow;
+
+    void InitElement() override {
+    }
+    void UpdateElement() override {
+    }
+    void DrawElement() override {
+        if (CrowdControl::Instance) {
+            CrowdControl::Instance->DrawChaosWindowContents();
+        }
+    }
+};
+
+class CrowdControlEffectTimersWindow : public Ship::GuiWindow {
+  public:
+    using GuiWindow::GuiWindow;
+
+    void InitElement() override {
+    }
+    void UpdateElement() override {
+    }
+
+    void DrawElement() override {
+        if (CrowdControl::Instance) {
+            CrowdControl::Instance->DrawEffectTimersWindowContents();
+        }
+    }
+
+    void Draw() override;
 };
 
 #endif // __cplusplus

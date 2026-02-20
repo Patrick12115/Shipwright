@@ -1,14 +1,16 @@
 #include "settings.h"
 #include "trial.h"
 #include "dungeon.h"
+#include "3drando/random.hpp"
 
 #include "soh/OTRGlobals.h"
-
-#include <spdlog/spdlog.h>
 
 #include <utility>
 
 #include <libultraship/bridge/consolevariablebridge.h>
+#include <libultraship/libultraship.h>
+
+#include "soh/Network/Archipelago/ArchipelagoConsoleWindow.h"
 
 namespace Rando {
 std::shared_ptr<Settings> Settings::mInstance;
@@ -122,6 +124,7 @@ void Settings::CreateOptions() {
     OPT_U8(RSK_SLEEPING_WATERFALL, "Sleeping Waterfall", {"Closed", "Open"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("SleepingWaterfall"), mOptionDescriptions[RSK_SLEEPING_WATERFALL]);
     OPT_U8(RSK_JABU_OPEN, "Jabu-Jabu", {"Closed", "Open"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("JabuJabu"), mOptionDescriptions[RSK_JABU_OPEN]);
     OPT_BOOL(RSK_LOCK_OVERWORLD_DOORS, "Lock Overworld Doors", CVAR_RANDOMIZER_SETTING("LockOverworldDoors"), mOptionDescriptions[RSK_LOCK_OVERWORLD_DOORS]);
+    OPT_BOOL(RSK_RANDOM_LOCKED_DOORS, "Randomize Locked Doors", CVAR_RANDOMIZER_SETTING("RandomLockedDoors"), mOptionDescriptions[RSK_RANDOM_LOCKED_DOORS]);
     OPT_U8(RSK_GERUDO_FORTRESS, "Fortress Carpenters", {"Normal", "Fast", "Free"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("FortressCarpenters"), mOptionDescriptions[RSK_GERUDO_FORTRESS]);
     OPT_U8(RSK_RAINBOW_BRIDGE, "Rainbow Bridge", {"Vanilla", "Always open", "Stones", "Medallions", "Dungeon rewards", "Dungeons", "Tokens", "Greg"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("RainbowBridge"), mOptionDescriptions[RSK_RAINBOW_BRIDGE], WidgetType::Combobox, RO_BRIDGE_VANILLA, false, IMFLAG_NONE);
     OPT_U8(RSK_RAINBOW_BRIDGE_STONE_COUNT, "Bridge Stone Count", {NumOpts(0, 4)}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("StoneCount"), "", WidgetType::Slider, 3, true);
@@ -216,6 +219,15 @@ void Settings::CreateOptions() {
     OPT_BOOL(RSK_SHUFFLE_SWIM, "Shuffle Swim", CVAR_RANDOMIZER_SETTING("ShuffleSwim"), mOptionDescriptions[RSK_SHUFFLE_SWIM]);
     OPT_BOOL(RSK_SHUFFLE_WEIRD_EGG, "Shuffle Weird Egg", CVAR_RANDOMIZER_SETTING("ShuffleWeirdEgg"), mOptionDescriptions[RSK_SHUFFLE_WEIRD_EGG]);
     OPT_BOOL(RSK_SHUFFLE_GERUDO_MEMBERSHIP_CARD, "Shuffle Gerudo Membership Card", CVAR_RANDOMIZER_SETTING("ShuffleGerudoToken"), mOptionDescriptions[RSK_SHUFFLE_GERUDO_MEMBERSHIP_CARD]);
+    OPT_BOOL(RSK_SHUFFLE_ISG, "Shuffle ISG", CVAR_RANDOMIZER_SETTING("ShuffleISG"), mOptionDescriptions[RSK_SHUFFLE_ISG]);
+    OPT_BOOL(RSK_SHUFFLE_OI, "Shuffle OI", CVAR_RANDOMIZER_SETTING("ShuffleOI"), mOptionDescriptions[RSK_SHUFFLE_OI]);
+    OPT_BOOL(RSK_SHUFFLE_QPA, "Shuffle QPA", CVAR_RANDOMIZER_SETTING("ShuffleQPA"), mOptionDescriptions[RSK_SHUFFLE_QPA]);
+    OPT_BOOL(RSK_SHUFFLE_HESS, "Shuffle HESS", CVAR_RANDOMIZER_SETTING("ShuffleHESS"), mOptionDescriptions[RSK_SHUFFLE_HESS]);
+    OPT_BOOL(RSK_SHUFFLE_SUPERSLIDE, "Shuffle Superslide", CVAR_RANDOMIZER_SETTING("ShuffleSuperslide"), mOptionDescriptions[RSK_SHUFFLE_SUPERSLIDE]);
+    OPT_BOOL(RSK_SHUFFLE_HOVER, "Shuffle Hovering", CVAR_RANDOMIZER_SETTING("ShuffleHover"), mOptionDescriptions[RSK_SHUFFLE_HOVER]);
+    OPT_BOOL(RSK_SHUFFLE_EQUIP_SWAP, "Shuffle Equip Swap", CVAR_RANDOMIZER_SETTING("ShuffleEquipSwap"), mOptionDescriptions[RSK_SHUFFLE_EQUIP_SWAP]);
+    OPT_BOOL(RSK_SHUFFLE_GROUND_JUMP, "Shuffle Ground Jump", CVAR_RANDOMIZER_SETTING("ShuffleGroundJump"), mOptionDescriptions[RSK_SHUFFLE_GROUND_JUMP]);
+    OPT_BOOL(RSK_SHUFFLE_WEIRDSHOT, "Shuffle Weirdshot", CVAR_RANDOMIZER_SETTING("ShuffleWeirdshot"), mOptionDescriptions[RSK_SHUFFLE_WEIRDSHOT]);
     OPT_U8(RSK_SHUFFLE_POTS, "Shuffle Pots", {"Off", "Dungeons", "Overworld", "All Pots"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("ShufflePots"), mOptionDescriptions[RSK_SHUFFLE_POTS], WidgetType::Combobox, RO_SHUFFLE_POTS_OFF);
     OPT_U8(RSK_SHUFFLE_GRASS, "Shuffle Grass", {"Off", "Dungeons", "Overworld", "All Grass/Bushes"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("ShuffleGrass"), mOptionDescriptions[RSK_SHUFFLE_GRASS], WidgetType::Combobox, RO_SHUFFLE_GRASS_OFF);
     OPT_U8(RSK_SHUFFLE_CRATES, "Shuffle Crates", {"Off", "Dungeons", "Overworld", "All Crates"}, OptionCategory::Setting, CVAR_RANDOMIZER_SETTING("ShuffleCrates"), mOptionDescriptions[RSK_SHUFFLE_CRATES], WidgetType::Combobox, RO_SHUFFLE_CRATES_OFF);
@@ -1204,6 +1216,7 @@ void Settings::CreateOptions() {
                                                                      &mOptions[RSK_SLEEPING_WATERFALL],
                                                                      &mOptions[RSK_JABU_OPEN],
                                                                      &mOptions[RSK_LOCK_OVERWORLD_DOORS],
+                                                                     &mOptions[RSK_RANDOM_LOCKED_DOORS],
                                                                  },
                                                                  WidgetContainerType::COLUMN);
     mOptionGroups[RSG_WORLD_IMGUI] = OptionGroup::SubGroup("World Settings",
@@ -1273,6 +1286,15 @@ void Settings::CreateOptions() {
                                                                        &mOptions[RSK_SHUFFLE_DEKU_STICK_BAG],
                                                                        &mOptions[RSK_SHUFFLE_DEKU_NUT_BAG],
                                                                        &mOptions[RSK_SHUFFLE_FREESTANDING],
+                                                                       &mOptions[RSK_SHUFFLE_ISG],
+                                                                       &mOptions[RSK_SHUFFLE_OI],
+                                                                       &mOptions[RSK_SHUFFLE_QPA],
+                                                                       &mOptions[RSK_SHUFFLE_HESS],
+                                                                       &mOptions[RSK_SHUFFLE_SUPERSLIDE],
+                                                                       &mOptions[RSK_SHUFFLE_HOVER],
+                                                                       &mOptions[RSK_SHUFFLE_EQUIP_SWAP],
+                                                                       &mOptions[RSK_SHUFFLE_GROUND_JUMP],
+                                                                       &mOptions[RSK_SHUFFLE_WEIRDSHOT],
                                                                    },
                                                                    WidgetContainerType::COLUMN);
     mOptionGroups[RSG_SHUFFLE_NPCS_IMGUI] =
@@ -1482,6 +1504,7 @@ void Settings::CreateOptions() {
                                                                &mOptions[RSK_SLEEPING_WATERFALL],
                                                                &mOptions[RSK_JABU_OPEN],
                                                                &mOptions[RSK_LOCK_OVERWORLD_DOORS],
+                                                               &mOptions[RSK_RANDOM_LOCKED_DOORS],
                                                                &mOptions[RSK_GERUDO_FORTRESS],
                                                                &mOptions[RSK_RAINBOW_BRIDGE],
                                                                &mOptions[RSK_RAINBOW_BRIDGE_STONE_COUNT],
@@ -1595,6 +1618,15 @@ void Settings::CreateOptions() {
                                             &mOptions[RSK_SHUFFLE_STONE_FAIRIES],
                                             &mOptions[RSK_SHUFFLE_BEAN_FAIRIES],
                                             &mOptions[RSK_SHUFFLE_SONG_FAIRIES],
+                                            &mOptions[RSK_SHUFFLE_ISG],
+                                            &mOptions[RSK_SHUFFLE_OI],
+                                            &mOptions[RSK_SHUFFLE_QPA],
+                                            &mOptions[RSK_SHUFFLE_HESS],
+                                            &mOptions[RSK_SHUFFLE_SUPERSLIDE],
+                                            &mOptions[RSK_SHUFFLE_HOVER],
+                                            &mOptions[RSK_SHUFFLE_EQUIP_SWAP],
+                                            &mOptions[RSK_SHUFFLE_GROUND_JUMP],
+                                            &mOptions[RSK_SHUFFLE_WEIRDSHOT],
                                         });
     mOptionGroups[RSG_SHUFFLE_DUNGEON_ITEMS] =
         OptionGroup("Shuffle Dungeon Items", {
@@ -2972,6 +3004,13 @@ void Settings::ParseJson(nlohmann::json spoilerFileJson) {
     }
 }
 
+void Settings::ResetExcludedLocations() {
+    const auto ctx = Context::GetInstance();
+    for (int rc = 1; rc < RC_MAX; rc++) {
+        ctx->GetItemLocation(rc)->SetExcludedOption(RO_GENERIC_OFF);
+    }
+}
+
 void Settings::AssignContext(std::shared_ptr<Context> ctx) {
     mContext = ctx;
 }
@@ -2990,6 +3029,78 @@ void Settings::SetAllToContext() {
     for (int i = 0; i < RC_MAX; i++) {
         mContext->GetItemLocation(i)->SetExcludedOption(
             StaticData::GetLocation(static_cast<RandomizerCheck>(i))->GetExcludedOption()->GetOptionIndex());
+    }
+}
+
+void Settings::RandomizeAllSettings() {
+    // Randomize all settings except tricks
+    for (int i = 0; i < RSK_MAX; i++) {
+        switch (static_cast<RandomizerSettingKey>(i)) {
+            case RSK_STARTING_SKULLTULA_TOKEN:
+            case RSK_STARTING_HEARTS:
+            case RSK_STARTING_ZELDAS_LULLABY:
+            case RSK_STARTING_EPONAS_SONG:
+            case RSK_STARTING_SARIAS_SONG:
+            case RSK_STARTING_SUNS_SONG:
+            case RSK_STARTING_SONG_OF_TIME:
+            case RSK_STARTING_SONG_OF_STORMS:
+            case RSK_STARTING_MINUET_OF_FOREST:
+            case RSK_STARTING_BOLERO_OF_FIRE:
+            case RSK_STARTING_SERENADE_OF_WATER:
+            case RSK_STARTING_REQUIEM_OF_SPIRIT:
+            case RSK_STARTING_NOCTURNE_OF_SHADOW:
+            case RSK_STARTING_PRELUDE_OF_LIGHT:
+                continue;
+            default:
+                break;
+        }
+
+        auto key = static_cast<RandomizerSettingKey>(i);
+        Option& option = mOptions[key];
+
+        // NEW: do not randomize locked options
+        if (option.IsLocked()) {
+            continue;
+        }
+
+        if (option.GetOptionCount() == 0) {
+            continue;
+        }
+
+        uint8_t randomIndex = Random(0, static_cast<uint32_t>(option.GetOptionCount()));
+
+        option.SetContextIndex(randomIndex);
+        if (!option.GetCVarName().empty()) {
+            CVarSetInteger(option.GetCVarName().c_str(), randomIndex);
+        }
+    }
+
+    // Update option properties to handle dependencies between options
+    UpdateOptionProperties();
+
+    Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+}
+
+void Settings::LockAllOptions() {
+    for (int i = 0; i < RSK_MAX; ++i) {
+        auto key = static_cast<RandomizerSettingKey>(i);
+        Option& option = mOptions[key];
+
+        // Optional: only lock “real” settings
+        if (!option.GetCVarName().empty()) {
+            option.SetLocked(true);
+        }
+    }
+}
+
+void Settings::UnlockAllOptions() {
+    for (int i = 0; i < RSK_MAX; ++i) {
+        auto key = static_cast<RandomizerSettingKey>(i);
+        Option& option = mOptions[key];
+
+        if (!option.GetCVarName().empty()) {
+            option.SetLocked(false);
+        }
     }
 }
 

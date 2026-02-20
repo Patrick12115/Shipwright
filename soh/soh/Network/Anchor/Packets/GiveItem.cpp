@@ -98,10 +98,22 @@ void Anchor::HandlePacket_GiveItem(nlohmann::json payload) {
                 .suffix = SohUtils::GetItemName(getItemEntry.itemId),
             });
         } else if (getItemEntry.modIndex == MOD_RANDOMIZER) {
+            std::string itemName =
+                Rando::StaticData::RetrieveItem((RandomizerGet)getItemEntry.getItemId).GetName().english;
+
+            if ((RandomizerGet)getItemEntry.getItemId == RG_TRIFORCE_PIECE) {
+                if (CVarGetInteger("gHoliday.Visual.HolidayPieces", 0)) {
+
+                    itemName = "a Christmas Ornament";
+                } else {
+                    itemName = "Triforce Piece";
+                }
+            }
+
             Notification::Emit({
                 .prefix = client.name,
                 .message = "found",
-                .suffix = Rando::StaticData::RetrieveItem((RandomizerGet)getItemEntry.getItemId).GetName().english,
+                .suffix = itemName,
             });
         }
     }

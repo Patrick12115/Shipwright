@@ -2570,8 +2570,10 @@ void Player_ProcessItemButtons(Player* this, PlayState* play) {
                 sHeldItemButtonIsHeldDown = true;
             }
         } else if (GameInteractor_Should(VB_CHANGE_HELD_ITEM_AND_USE_ITEM, true, item)) {
-            this->heldItemButton = i;
-            Player_UseItem(play, this, item);
+            if (GameInteractor_Should(VB_USE_ITEM, true, &item)) {
+                this->heldItemButton = i;
+                Player_UseItem(play, this, item);
+            }
         }
     }
 }
@@ -2692,9 +2694,13 @@ s32 func_8083442C(Player* this, PlayState* play) {
                 magicArrowType = arrowType - ARROW_FIRE;
 
                 if (this->unk_860 >= 0) {
-                    if ((magicArrowType >= 0) && (magicArrowType <= 2) &&
-                        !Magic_RequestChange(play, sMagicArrowCosts[magicArrowType], MAGIC_CONSUME_NOW)) {
-                        arrowType = ARROW_NORMAL;
+                    if ((magicArrowType >= 0) && (magicArrowType <= 2)) {
+                        if (GameInteractor_Should(VB_PLAYER_ARROW_MAGIC_CONSUMPTION, true, this, magicArrowType,
+                                                  &arrowType)) {
+                            if (!Magic_RequestChange(play, sMagicArrowCosts[magicArrowType], MAGIC_CONSUME_NOW)) {
+                                arrowType = ARROW_NORMAL;
+                            }
+                        }
                     }
 
                     this->heldActor = Actor_SpawnAsChild(
@@ -3555,6 +3561,7 @@ void func_80836448(PlayState* play, Player* this, LinkAnimationHeader* anim) {
             Audio_PlayFanfare(NA_BGM_GAME_OVER);
             gSaveContext.seqId = (u8)NA_BGM_DISABLED;
             gSaveContext.natureAmbienceId = NATURE_ID_DISABLED;
+            GameInteractor_ExecuteOnPlayerDeath();
         }
 
         OnePointCutscene_Init(play, 9806, cond ? 120 : 60, &this->actor, MAIN_CAM);
@@ -4450,6 +4457,7 @@ void func_80837948(PlayState* play, Player* this, s32 arg2) {
     if ((arg2 >= PLAYER_MWA_FLIPSLASH_START) && (arg2 <= PLAYER_MWA_JUMPSLASH_FINISH)) {
         if (CVarGetInteger(CVAR_GENERAL("RestoreQPA"), 1) && temp == -1) {
             dmgFlags = 0x16171617;
+            GameInteractor_ExecuteOnQPADamage(&dmgFlags);
         } else {
             dmgFlags = D_80854488[temp][1];
         }
@@ -5788,7 +5796,8 @@ void func_8083AA10(Player* this, PlayState* play) {
             if (!(this->stateFlags3 & PLAYER_STATE3_MIDAIR) && !(this->skelAnime.movementFlags & 0x80) &&
                 (Player_Action_8084411C != this->actionFunc) && (Player_Action_80844A44 != this->actionFunc)) {
 
-                if ((sPrevFloorProperty == 7) || (this->meleeWeaponState != 0)) {
+                if ((sPrevFloorProperty == 7) ||
+                    (GameInteractor_Should(VB_HOVER_WITH_ISG, true) && (this->meleeWeaponState != 0))) {
                     Math_Vec3f_Copy(&this->actor.world.pos, &this->actor.prevPos);
                     Player_ZeroSpeedXZ(this);
                     return;
@@ -6103,6 +6112,9 @@ s32 Player_ActionHandler_13(Player* this, PlayState* play) {
                         func_80835EA4(play, 2);
                     }
                 } else {
+                    if (GameInteractor_Should(VB_SKIP_FORCE_PLAY_OCARINA, false)) {
+                        return 0;
+                    }
                     Player_SetupActionPreserveItemAction(play, this, Player_Action_8084E3C4, 0);
                     Player_AnimPlayOnceAdjusted(play, this, &gPlayerAnim_link_normal_okarina_start);
                     this->stateFlags2 |= PLAYER_STATE2_OCARINA_PLAYING;
@@ -6301,11 +6313,16 @@ s32 func_8083BBA0(Player* this, PlayState* play) {
 }
 
 void Player_SetupRoll(Player* this, PlayState* play) {
+    if (!GameInteractor_Should(VB_PLAYER_ROLL, true)) {
+        return;
+    }
+
     Player_SetupAction(play, this, Player_Action_Roll, 0);
     LinkAnimation_PlayOnceSetSpeed(play, &this->skelAnime,
                                    GET_PLAYER_ANIM(PLAYER_ANIMGROUP_landing_roll, this->modelAnimType),
                                    1.25f * sWaterSpeedFactor);
     gSaveContext.ship.stats.count[COUNT_ROLLS]++;
+    GameInteractor_ExecuteOnPlayerRoll();
 }
 
 s32 Player_TryRoll(Player* this, PlayState* play) {
@@ -7127,9 +7144,13 @@ void func_8083DFE0(Player* this, f32* arg1, s16* arg2) {
     if (this->meleeWeaponState == 0) {
         float maxSpeed = R_RUN_SPEED_LIMIT / 100.0f;
 
-        if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) == BUNNY_HOOD_FAST_AND_JUMP &&
-            this->currentMask == PLAYER_MASK_BUNNY) {
-            maxSpeed *= 1.5f;
+        if (this->currentMask == PLAYER_MASK_BUNNY) {
+            if (IS_ROGUELIKE) {
+                maxSpeed *= 1.0f + (((f32)gSaveContext.ship.quest.data.rogueLike.stats[RL_SPEED]) / 10.0f) * 1.5f;
+            } else if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) ==
+                       BUNNY_HOOD_FAST_AND_JUMP) {
+                maxSpeed *= 1.5f;
+            }
         }
 
         if (CVarGetInteger(CVAR_SETTING("WalkModifier.Enabled"), 0) &&
@@ -7141,9 +7162,12 @@ void func_8083DFE0(Player* this, f32* arg1, s16* arg2) {
                     maxSpeed *= CVarGetFloat(CVAR_SETTING("WalkModifier.Mapping2"), 1.0f);
                 }
             } else {
-                if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_CUSTOM_MODIFIER1)) {
+                const s32 mod1Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod1Btn"), BTN_CUSTOM_MODIFIER1);
+                const s32 mod2Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod2Btn"), BTN_CUSTOM_MODIFIER2);
+
+                if (mod1Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod1Mask)) {
                     maxSpeed *= CVarGetFloat(CVAR_SETTING("WalkModifier.Mapping1"), 1.0f);
-                } else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_CUSTOM_MODIFIER2)) {
+                } else if (mod2Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod2Mask)) {
                     maxSpeed *= CVarGetFloat(CVAR_SETTING("WalkModifier.Mapping2"), 1.0f);
                 }
             }
@@ -7339,7 +7363,7 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
                 // Only skip cutscenes for drops when they're items/consumables from bushes/rocks/enemies.
                 uint8_t isDropToSkip =
                     (interactedActor->id == ACTOR_EN_ITEM00 && interactedActor->params != ITEM00_HEART_PIECE &&
-                     interactedActor->params != ITEM00_SMALL_KEY &&
+                     interactedActor->params != ITEM00_SMALL_KEY && interactedActor->params != ITEM00_NONE &&
                      interactedActor->params != ITEM00_SOH_GIVE_ITEM_ENTRY &&
                      interactedActor->params != ITEM00_SOH_GIVE_ITEM_ENTRY_GI) ||
                     interactedActor->id == ACTOR_EN_KAREBABA || interactedActor->id == ACTOR_EN_DEKUBABA;
@@ -8373,6 +8397,8 @@ void Player_Action_Idle(Player* this, PlayState* play) {
                 return;
             }
 
+            GameInteractor_ExecuteOnESS();
+
             Player_GetMovementSpeedAndYaw(this, &speedTarget, &yawTarget, SPEED_MODE_CURVED, play);
 
             if (speedTarget != 0.0f) {
@@ -8567,6 +8593,16 @@ void Player_Action_808414F8(Player* this, PlayState* play) {
         }
 
         Player_GetMovementSpeedAndYaw(this, &speedTarget, &yawTarget, SPEED_MODE_LINEAR, play);
+
+        int32_t giSpeedModifier = GameInteractor_MovementSpeedMultiplier();
+        if (giSpeedModifier != 0) {
+            if (giSpeedModifier > 0) {
+                speedTarget *= giSpeedModifier;
+            } else {
+                speedTarget /= abs(giSpeedModifier);
+            }
+        }
+
         sp2C = func_8083FD78(this, &speedTarget, &yawTarget, play);
 
         if (sp2C >= 0) {
@@ -8868,9 +8904,12 @@ void Player_Action_80842180(Player* this, PlayState* play) {
 
         if (!func_8083C484(this, &sp2C, &sp2A)) {
 
-            if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA &&
-                this->currentMask == PLAYER_MASK_BUNNY) {
-                sp2C *= 1.5f;
+            if (this->currentMask == PLAYER_MASK_BUNNY) {
+                if (IS_ROGUELIKE) {
+                    sp2C *= 1.0f + (((f32)gSaveContext.ship.quest.data.rogueLike.stats[RL_SPEED]) / 10.0f) * 1.5f;
+                } else if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA) {
+                    sp2C *= 1.5f;
+                }
             }
 
             if (CVarGetInteger(CVAR_SETTING("WalkModifier.Enabled"), 0)) {
@@ -8881,9 +8920,12 @@ void Player_Action_80842180(Player* this, PlayState* play) {
                         sp2C *= CVarGetFloat(CVAR_SETTING("WalkModifier.Mapping2"), 1.0f);
                     }
                 } else {
-                    if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_CUSTOM_MODIFIER1)) {
+                    const s32 mod1Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod1Btn"), BTN_CUSTOM_MODIFIER1);
+                    const s32 mod2Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod2Btn"), BTN_CUSTOM_MODIFIER2);
+
+                    if (mod1Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod1Mask)) {
                         sp2C *= CVarGetFloat(CVAR_SETTING("WalkModifier.Mapping1"), 1.0f);
-                    } else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_CUSTOM_MODIFIER2)) {
+                    } else if (mod2Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod2Mask)) {
                         sp2C *= CVarGetFloat(CVAR_SETTING("WalkModifier.Mapping2"), 1.0f);
                     }
                 }
@@ -10224,6 +10266,8 @@ void Player_Action_80845668(Player* this, PlayState* play) {
 void Player_Action_WaitForPutAway(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_DISABLE_ROTATION_Z_TARGET | PLAYER_STATE2_DISABLE_ROTATION_ALWAYS;
     LinkAnimation_Update(play, &this->skelAnime);
+
+    GameInteractor_ExecuteOnWaitForPutaway();
 
     // Wait for the held item put away process to complete.
     // Determining if the put away process is complete is a bit complicated:
@@ -12400,10 +12444,15 @@ void Player_Update(Actor* thisx, PlayState* play) {
 
         if (CVarGetInteger(CVAR_SETTING("WalkModifier.Enabled"), 0) &&
             CVarGetInteger(CVAR_SETTING("WalkModifier.SpeedToggle"), 0)) {
-            if (CHECK_BTN_ALL(sControlInput->press.button, BTN_CUSTOM_MODIFIER1)) {
+            const s32 mod1Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod1Btn"), BTN_CUSTOM_MODIFIER1);
+            const s32 mod2Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod2Btn"), BTN_CUSTOM_MODIFIER2);
+
+            if (mod1Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod1Mask) &&
+                CHECK_BTN_ANY(sControlInput->press.button, mod1Mask)) {
                 gWalkSpeedToggle1 = !gWalkSpeedToggle1;
             }
-            if (CHECK_BTN_ALL(sControlInput->press.button, BTN_CUSTOM_MODIFIER2)) {
+            if (mod2Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod2Mask) &&
+                CHECK_BTN_ANY(sControlInput->press.button, mod2Mask)) {
                 gWalkSpeedToggle2 = !gWalkSpeedToggle2;
             }
         }
@@ -12817,9 +12866,13 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
 
     if (CVarGetInteger(CVAR_SETTING("MoveInFirstPerson"), 0)) {
         f32 movementSpeed = LINK_IS_ADULT ? 9.0f : 8.25f;
-        if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA &&
-            this->currentMask == PLAYER_MASK_BUNNY) {
-            movementSpeed *= 1.5f;
+
+        if (this->currentMask == PLAYER_MASK_BUNNY) {
+            if (IS_ROGUELIKE) {
+                movementSpeed *= 1.0f + (((f32)gSaveContext.ship.quest.data.rogueLike.stats[RL_SPEED]) / 10.0f) * 1.5f;
+            } else if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA) {
+                movementSpeed *= 1.5f;
+            }
         }
 
         f32 relX = (sControlInput->rel.stick_x / 10 * -invertXAxisMulti);
@@ -12865,9 +12918,12 @@ void func_8084AEEC(Player* this, f32* arg1, f32 arg2, s16 arg3) {
             // sControlInput is NULL to prevent inputs while surfacing after obtaining an underwater item so we want to
             // ignore it for that case
         } else if (sControlInput != NULL) {
-            if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_CUSTOM_MODIFIER1)) {
+            const s32 mod1Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod1Btn"), BTN_CUSTOM_MODIFIER1);
+            const s32 mod2Mask = CVarGetInteger(CVAR_SETTING("WalkModifier.Mod2Btn"), BTN_CUSTOM_MODIFIER2);
+
+            if (mod1Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod1Mask)) {
                 swimMod *= CVarGetFloat(CVAR_SETTING("WalkModifier.SwimMapping1"), 1.0f);
-            } else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_CUSTOM_MODIFIER2)) {
+            } else if (mod2Mask != 0 && CHECK_BTN_ALL(sControlInput->cur.button, mod2Mask)) {
                 swimMod *= CVarGetFloat(CVAR_SETTING("WalkModifier.SwimMapping2"), 1.0f);
             }
         }
@@ -15093,11 +15149,10 @@ void Player_Action_8084FBF4(Player* this, PlayState* play) {
  */
 s32 Player_UpdateNoclip(Player* this, PlayState* play) {
     sControlInput = &play->state.input[0];
+    s32 mask = CVarGetInteger("gDeveloperTools.NoClipBtn", BTN_L | BTN_DRIGHT);
 
     if (CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0) &&
-        ((CHECK_BTN_ALL(sControlInput->cur.button, BTN_A | BTN_L | BTN_R) &&
-          CHECK_BTN_ALL(sControlInput->press.button, BTN_B)) ||
-         (CHECK_BTN_ALL(sControlInput->cur.button, BTN_L) && CHECK_BTN_ALL(sControlInput->press.button, BTN_DRIGHT)))) {
+        (CHECK_BTN_ALL(sControlInput->cur.button, mask) && CHECK_BTN_ANY(sControlInput->press.button, mask))) {
 
         sNoclipEnabled ^= 1;
 

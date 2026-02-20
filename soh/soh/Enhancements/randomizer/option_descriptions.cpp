@@ -46,6 +46,8 @@ void Settings::CreateOptionDescriptions() {
                                          "Open - Jabu-Jabu's mouth opens without the need for a fish.";
     mOptionDescriptions[RSK_LOCK_OVERWORLD_DOORS] =
         "Add locks to all wooden overworld doors, requiring specific small keys to open them";
+    mOptionDescriptions[RSK_RANDOM_LOCKED_DOORS] = "Shuffles which doors are locked within dungeons. *There is NO "
+                                                   "Logic made for this and therefore could lead to unbeatable seeds*";
     mOptionDescriptions[RSK_STARTING_AGE] =
         "Choose which age Link will start as.\n\n"
         "Starting as adult means you start with the Master Sword in your inventory.\n"
@@ -124,14 +126,14 @@ void Settings::CreateOptionDescriptions() {
         "set to either MQ or Random here, you will have fewer MQ Dungeons than the number you "
         "set.";
     mOptionDescriptions[RSK_TRIFORCE_HUNT] =
-        "Pieces of the Triforce of Courage have been scattered across the world. Find them all to finish the game!\n\n"
-        "When the required amount of pieces have been found, the game is saved and Ganon's Boss key is given "
+        "Ornaments have been scattered across the world. Find them all to finish the game!\n\n"
+        "When the required amount of ornaments have been found, the game is saved and Ganon's Boss key is given "
         "to you when you load back into the game if you desire to beat Ganon afterwards.\n\n"
         "Keep in mind Ganon might not be logically beatable when \"All Locations Reachable\" is turned off.";
-    mOptionDescriptions[RSK_TRIFORCE_HUNT_PIECES_TOTAL] =
-        "The amount of Triforce pieces that will be placed in the world. "
-        "Keep in mind seed generation can fail if more pieces are placed than there are junk items in the item pool.";
-    mOptionDescriptions[RSK_TRIFORCE_HUNT_PIECES_REQUIRED] = "The amount of Triforce pieces required to win the game.";
+    mOptionDescriptions[RSK_TRIFORCE_HUNT_PIECES_TOTAL] = "The amount of Ornaments that will be placed in the world. "
+                                                          "Keep in mind seed generation can fail if more ornaments are "
+                                                          "placed than there are junk items in the item pool.";
+    mOptionDescriptions[RSK_TRIFORCE_HUNT_PIECES_REQUIRED] = "The amount of Ornaments required to win the game.";
     mOptionDescriptions[RSK_SHUFFLE_DUNGEON_ENTRANCES] =
         "Shuffle the pool of dungeon entrances, including Bottom of the Well, Ice Cavern and Gerudo Training Ground.\n"
         "\n"
@@ -778,5 +780,18 @@ void Settings::CreateOptionDescriptions() {
         "Shuffles 8 boss souls (one for each blue warp dungeon). A boss will not appear until you collect its "
         "respective soul."
         "\n\"On + Ganon\" will also hide Ganon and Ganondorf behind a boss soul.";
+
+    mOptionDescriptions[RSK_SHUFFLE_ISG] =
+        "Shuffles the ability to use the Infinite Sword Glitch (ISG) into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_OI] = "Shuffles the ability to use the glitch Ocarina Items into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_QPA] =
+        "Shuffles the ability to use Quick Putaway Glitched Damage into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_HESS] =
+        "Shuffles the ability to perform an Extended Superslide into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_SUPERSLIDE] = "Shuffles the ability to Superslide into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_HOVER] = "Shuffles the ability to Hover into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_EQUIP_SWAP] = "Shuffles the ability to Equip Swap into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_GROUND_JUMP] = "Shuffles the ability to Ground Jump into the item pool.";
+    mOptionDescriptions[RSK_SHUFFLE_WEIRDSHOT] = "Shuffles the ability to Weirdshot into the item pool.";
 }
 } // namespace Rando

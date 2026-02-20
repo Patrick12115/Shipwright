@@ -36,6 +36,15 @@ std::string lastLoadedSpoiler = "";
 int32_t temporaryItemIndex = -1;
 RandomizerCheckArea selectedArea = RCAREA_INVALID;
 
+enum PlandoSearchMode {
+    PLANDO_SEARCH_ANY = 0,
+    PLANDO_SEARCH_LOCATION,
+    PLANDO_SEARCH_ITEM,
+};
+
+static std::string gPlandoSearchText = "";
+static int gPlandoSearchMode = PLANDO_SEARCH_ANY;
+
 ImVec4 itemColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 ImTextureID textureID;
 ImVec2 imageSize = ImVec2(32.0f, 32.0f);
@@ -254,6 +263,19 @@ std::unordered_map<RandomizerGet, std::string> itemImageMap = {
     { RG_SKELETON_KEY, "ITEM_KEY_SMALL" }
 };
 
+static std::string ToLowerCopy(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return (unsigned char)std::tolower(c); });
+    return s;
+}
+
+static bool IContains(const std::string& haystack, const std::string& needle) {
+    if (needle.empty())
+        return true;
+    auto h = ToLowerCopy(haystack);
+    auto n = ToLowerCopy(needle);
+    return h.find(n) != std::string::npos;
+}
+
 Rando::Item plandomizerRandoRetrieveItem(RandomizerGet randoGetItem) {
     auto randoGetItemEntry = Rando::StaticData::RetrieveItem(randoGetItem);
     return randoGetItemEntry;
@@ -356,16 +378,66 @@ std::string extractNumberInParentheses(const std::string& text) {
     return "";
 }
 
+static std::string FormatFileTime(const std::filesystem::file_time_type& ft) {
+    using namespace std::chrono;
+
+    const auto now = system_clock::now();
+    const auto sctp = time_point_cast<system_clock::duration>(ft - std::filesystem::file_time_type::clock::now() + now);
+
+    std::time_t fileTime = system_clock::to_time_t(sctp);
+    std::time_t nowTime = system_clock::to_time_t(now);
+
+    std::tm fileTm{};
+    std::tm nowTm{};
+
+#ifdef _WIN32
+    localtime_s(&fileTm, &fileTime);
+    localtime_s(&nowTm, &nowTime);
+#else
+    localtime_r(&fileTime, &fileTm);
+    localtime_r(&nowTime, &nowTm);
+#endif
+
+    std::ostringstream oss;
+
+    if (fileTm.tm_year == nowTm.tm_year && fileTm.tm_yday == nowTm.tm_yday) {
+        oss << "Today at " << std::put_time(&fileTm, "%I:%M %p");
+    } else if (fileTm.tm_year == nowTm.tm_year && fileTm.tm_yday == nowTm.tm_yday - 1) {
+        oss << "Yesterday at " << std::put_time(&fileTm, "%I:%M %p");
+    } else {
+        oss << std::put_time(&fileTm, "%b %d, %Y – %I:%M %p");
+    }
+
+    return oss.str();
+}
+
+static std::unordered_map<std::string, std::string> gSpoilerLogTimeStrings;
+
 void PlandomizerPopulateSeedList() {
     existingSeedList.clear();
-    auto spoilerPath = Ship::Context::GetPathRelativeToAppDirectory("Randomizer");
+    gSpoilerLogTimeStrings.clear();
 
-    if (std::filesystem::exists(spoilerPath)) {
-        for (const auto& entry : std::filesystem::directory_iterator(spoilerPath)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                existingSeedList.push_back(entry.path().stem().string());
-            }
+    auto spoilerPath = Ship::Context::GetPathRelativeToAppDirectory("Randomizer");
+    if (!std::filesystem::exists(spoilerPath)) {
+        return;
+    }
+
+    std::vector<std::pair<std::string, std::filesystem::file_time_type>> files;
+
+    for (const auto& entry : std::filesystem::directory_iterator(spoilerPath)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            const std::string name = entry.path().stem().string();
+            const auto time = entry.last_write_time();
+            files.emplace_back(name, time);
         }
+    }
+
+    // Newest -> oldest
+    std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+
+    for (const auto& f : files) {
+        existingSeedList.push_back(f.first);
+        gSpoilerLogTimeStrings[f.first] = FormatFileTime(f.second);
     }
 }
 
@@ -941,6 +1013,13 @@ void PlandomizerDrawOptions() {
             UIWidgets::Combobox(
                 "##JsonFiles", &selectedList, existingSeedList,
                 UIWidgets::ComboboxOptions().Color(THEME_COLOR).LabelPosition(UIWidgets::LabelPositions::None));
+            if (ImGui::IsItemHovered() && selectedList < existingSeedList.size()) {
+                const std::string& name = existingSeedList[selectedList];
+                auto it = gSpoilerLogTimeStrings.find(name);
+                if (it != gSpoilerLogTimeStrings.end()) {
+                    UIWidgets::Tooltip(it->second.c_str());
+                }
+            }
         } else {
             ImGui::Text("No Spoiler Logs found.");
         }
@@ -1034,7 +1113,7 @@ void PlandomizerDrawOptions() {
     }
     if (getTabID == TAB_LOCATIONS) {
         if (plandoLogData.size() > 0) {
-            UIWidgets::Combobox("Filter by Area:##AreaFilter", &selectedArea, rcAreaNameMap,
+            UIWidgets::Combobox("Filter by Area:", &selectedArea, rcAreaNameMap,
                                 UIWidgets::ComboboxOptions()
                                     .Color(THEME_COLOR)
                                     .LabelPosition(UIWidgets::LabelPositions::Near)
@@ -1046,6 +1125,25 @@ void PlandomizerDrawOptions() {
                                                            .Padding(ImVec2(10.f, 6.f)))) {
                 PlandomizerRemoveAllItems();
             }
+            ImGui::SameLine();
+            static const std::vector<std::string> searchModes = { "Any", "Location", "Item" };
+
+            // Mode dropdown
+            static size_t modeIdx = 0;
+            modeIdx = (size_t)gPlandoSearchMode;
+            UIWidgets::Combobox("Search Type:", &modeIdx, searchModes,
+                                UIWidgets::ComboboxOptions()
+                                    .Color(THEME_COLOR)
+                                    .LabelPosition(UIWidgets::LabelPositions::Near)
+                                    .ComponentAlignment(UIWidgets::ComponentAlignments::Right));
+            gPlandoSearchMode = (int)modeIdx;
+
+            ImGui::SameLine();
+            UIWidgets::InputString("##SearchText", &gPlandoSearchText,
+                                   UIWidgets::InputOptions()
+                                       .Color(THEME_COLOR)
+                                       .LabelPosition(UIWidgets::LabelPositions::None)
+                                       .Tooltip("Search by location or item name"));
         }
     }
 }
@@ -1113,7 +1211,33 @@ void PlandomizerDrawLocationsWindow(RandomizerCheckArea rcArea) {
         for (auto& spoilerData : spoilerLogData) {
             auto checkID = Rando::StaticData::locationNameToEnum[spoilerData.checkName];
             auto randoArea = Rando::StaticData::GetLocation(checkID)->GetArea();
-            if (rcArea == RCAREA_INVALID || rcArea == randoArea) {
+            const bool areaPass = (rcArea == RCAREA_INVALID || rcArea == randoArea);
+
+            const std::string& locationName = spoilerData.checkName;
+
+            // Use ONE item name source (plando reflects current state)
+            const std::string itemName = plandoLogData[index].checkRewardItem.GetName().english;
+
+            bool searchPass = true;
+            if (!gPlandoSearchText.empty()) {
+                switch (gPlandoSearchMode) {
+                    default:
+                    case PLANDO_SEARCH_ANY:
+                        searchPass =
+                            IContains(locationName, gPlandoSearchText) || IContains(itemName, gPlandoSearchText);
+                        break;
+
+                    case PLANDO_SEARCH_LOCATION:
+                        searchPass = IContains(locationName, gPlandoSearchText);
+                        break;
+
+                    case PLANDO_SEARCH_ITEM:
+                        searchPass = IContains(itemName, gPlandoSearchText);
+                        break;
+                }
+            }
+
+            if (areaPass && searchPass) {
                 ImGui::TableNextColumn();
                 ImGui::TextWrapped("%s", spoilerData.checkName.c_str());
                 ImGui::TableNextColumn();

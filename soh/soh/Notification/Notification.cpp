@@ -15,99 +15,166 @@ static uint32_t nextId = 0;
 static std::vector<Options> notifications = {};
 
 void Window::Draw() {
-    auto vp = ImGui::GetMainViewport();
+    ImGuiViewport* vp = ImGui::GetMainViewport();
+    if (!vp) {
+        return;
+    }
 
     const float margin = 30.0f;
     const float padding = 10.0f;
+    const float boxPaddingX = 12.0f;
+    const float boxPaddingY = 10.0f;
+    const float rounding = 6.0f;
+    const float iconSize = 32.0f;
+    const float iconTextSpacing = 8.0f;
 
     int position = CVarGetInteger(CVAR_SETTING("Notifications.Position"), 3);
+    if (position == 4) { // Hidden
+        return;
+    }
 
-    // Top Left
+    // Base anchor position (same as your code)
     ImVec2 basePosition;
     switch (position) {
-        case 0: // Top Left
+        case 0:
             basePosition = ImVec2(vp->Pos.x + margin, vp->Pos.y + margin);
-            break;
-        case 1: // Top Right
+            break; // TL
+        case 1:
             basePosition = ImVec2(vp->Pos.x + vp->Size.x - margin, vp->Pos.y + margin);
-            break;
-        case 2: // Bottom Left
+            break; // TR
+        case 2:
             basePosition = ImVec2(vp->Pos.x + margin, vp->Pos.y + vp->Size.y - margin);
-            break;
-        case 3: // Bottom Right
+            break; // BL
+        case 3:
             basePosition = ImVec2(vp->Pos.x + vp->Size.x - margin, vp->Pos.y + vp->Size.y - margin);
-            break;
-        case 4: // Hidden
+            break; // BR
+        default:
             return;
     }
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg,
-                          ImVec4(0, 0, 0, CVarGetFloat(CVAR_SETTING("Notifications.BgOpacity"), 0.5f)));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.0f);
+    ImDrawList* dl = ImGui::GetBackgroundDrawList(vp);
 
-    for (int index = 0; index < notifications.size(); ++index) {
-        auto& notification = notifications[index];
-        int inverseIndex = -ABS(index - (notifications.size() - 1));
+    // You were using SetWindowFontScale; for draw lists, use font size explicitly.
+    const float scale = CVarGetFloat(CVAR_SETTING("Notifications.Size"), 1.8f);
+    ImFont* font = ImGui::GetFont();
+    const float fontSize = ImGui::GetFontSize() * scale;
 
-        ImGui::SetNextWindowViewport(vp->ID);
-        if (notification.remainingTime < 4.0f) {
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, (notification.remainingTime - 1) / 3.0f);
+    // Stack newest at the “edge” (similar to your inverseIndex logic)
+    float stackOffsetY = 0.0f;
+
+    // Draw from newest -> oldest so stacking feels natural
+    for (int i = (int)notifications.size() - 1; i >= 0; --i) {
+        const Options& n = notifications[i];
+
+        float alpha = 1.0f;
+        if (n.remainingTime < 4.0f) {
+            alpha = (n.remainingTime - 1.0f) / 3.0f;
+            if (alpha < 0.0f)
+                alpha = 0.0f;
+            if (alpha > 1.0f)
+                alpha = 1.0f;
+        }
+
+        // Text sizes (prefix/message/suffix)
+        const bool hasIcon = (n.itemIcon != nullptr);
+        const bool hasPrefix = !n.prefix.empty();
+        const bool hasSuffix = !n.suffix.empty();
+
+        // Measure text using the scaled font size
+        ImVec2 prefixSz(0, 0), msgSz(0, 0), suffixSz(0, 0);
+
+        if (hasPrefix)
+            prefixSz = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, n.prefix.c_str());
+        msgSz = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, n.message.c_str());
+        if (hasSuffix)
+            suffixSz = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, n.suffix.c_str());
+
+        float contentW = 0.0f;
+        float contentH = 0.0f;
+
+        if (hasIcon) {
+            contentW += iconSize + iconTextSpacing;
+            contentH = (iconSize > contentH) ? iconSize : contentH;
+        }
+
+        const float segSpacing = ImGui::GetStyle().ItemSpacing.x;
+
+        float spacingW = 0.0f;
+
+        if (hasPrefix && !n.message.empty())
+            spacingW += segSpacing;
+
+        if (hasSuffix)
+            spacingW += segSpacing;
+
+        spacingW += segSpacing;
+
+        contentW += prefixSz.x + msgSz.x + suffixSz.x + spacingW;
+        // Height is max of text line height and icon
+        const float textH = (prefixSz.y > msgSz.y ? prefixSz.y : msgSz.y);
+        const float textH2 = (suffixSz.y > textH ? suffixSz.y : textH);
+        contentH = (textH2 > contentH) ? textH2 : contentH;
+
+        const ImVec2 boxSize(contentW + boxPaddingX * 2.0f, contentH + boxPaddingY * 2.0f);
+
+        // Compute box position based on corner + stacking
+        ImVec2 boxPos = basePosition;
+
+        const bool rightAligned = (position == 1 || position == 3);
+        const bool bottomAligned = (position == 2 || position == 3);
+
+        if (rightAligned) {
+            boxPos.x -= boxSize.x;
+        }
+        if (bottomAligned) {
+            boxPos.y -= boxSize.y;
+            boxPos.y -= stackOffsetY;
         } else {
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+            boxPos.y += stackOffsetY;
         }
 
-        ImGui::Begin(("notification#" + std::to_string(notification.id)).c_str(), nullptr,
-                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing |
-                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
-                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove |
-                         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
+        ImVec2 boxPosMax(boxPos.x + boxSize.x, boxPos.y + boxSize.y);
 
-        ImGui::SetWindowFontScale(CVarGetFloat(CVAR_SETTING("Notifications.Size"), 1.8f)); // Make this adjustable
+        // Notification.cpp
+        float bgOpacity = CVarGetFloat(CVAR_SETTING("Notifications.BgOpacity"), 0.5f);
+        bgOpacity = ImClamp(bgOpacity, 0.0f, 1.0f);
 
-        ImVec2 notificationPos;
-        switch (position) {
-            case 0: // Top Left
-                notificationPos =
-                    ImVec2(basePosition.x, basePosition.y + ((ImGui::GetWindowSize().y + padding) * inverseIndex));
-                break;
-            case 1: // Top Right
-                notificationPos = ImVec2(basePosition.x - ImGui::GetWindowSize().x,
-                                         basePosition.y + ((ImGui::GetWindowSize().y + padding) * inverseIndex));
-                break;
-            case 2: // Bottom Left
-                notificationPos = ImVec2(basePosition.x,
-                                         basePosition.y - ((ImGui::GetWindowSize().y + padding) * (inverseIndex + 1)));
-                break;
-            case 3: // Bottom Right
-                notificationPos = ImVec2(basePosition.x - ImGui::GetWindowSize().x,
-                                         basePosition.y - ((ImGui::GetWindowSize().y + padding) * (inverseIndex + 1)));
-                break;
+        ImU32 bgCol = ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f, bgOpacity * alpha));
+        dl->AddRectFilled(boxPos, boxPosMax, bgCol, rounding);
+
+        // Draw contents
+        ImVec2 cursor = ImVec2(boxPos.x + boxPaddingX, boxPos.y + boxPaddingY);
+
+        if (hasIcon) {
+            ImTextureID tex = Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(n.itemIcon);
+            ImU32 iconTint = ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, alpha));
+            dl->AddImage(tex, cursor, ImVec2(cursor.x + iconSize, cursor.y + iconSize), ImVec2(0, 0), ImVec2(1, 1),
+                         iconTint);
+            cursor.x += iconSize + iconTextSpacing;
         }
 
-        ImGui::SetWindowPos(notificationPos);
+        // Apply alpha to colors
+        auto withAlpha = [&](ImVec4 c) {
+            c.w *= alpha;
+            return c;
+        };
 
-        if (notification.itemIcon != nullptr) {
-            ImGui::Image(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(notification.itemIcon),
-                         ImVec2(24, 24));
-            ImGui::SameLine();
-        }
-        if (!notification.prefix.empty()) {
-            ImGui::TextColored(notification.prefixColor, "%s", notification.prefix.c_str());
-            ImGui::SameLine();
-        }
-        ImGui::TextColored(notification.messageColor, "%s", notification.message.c_str());
-        if (!notification.suffix.empty()) {
-            ImGui::SameLine();
-            ImGui::TextColored(notification.suffixColor, "%s", notification.suffix.c_str());
+        if (hasPrefix) {
+            dl->AddText(font, fontSize, cursor, ImGui::GetColorU32(withAlpha(n.prefixColor)), n.prefix.c_str());
+            cursor.x += prefixSz.x + segSpacing;
         }
 
-        ImGui::End();
-        ImGui::PopStyleVar();
+        dl->AddText(font, fontSize, cursor, ImGui::GetColorU32(withAlpha(n.messageColor)), n.message.c_str());
+        cursor.x += msgSz.x;
+
+        if (hasSuffix) {
+            cursor.x += segSpacing;
+            dl->AddText(font, fontSize, cursor, ImGui::GetColorU32(withAlpha(n.suffixColor)), n.suffix.c_str());
+        }
+
+        // Advance stacking
+        stackOffsetY += boxSize.y + padding;
     }
-
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor(2);
 }
 
 void Window::UpdateElement() {

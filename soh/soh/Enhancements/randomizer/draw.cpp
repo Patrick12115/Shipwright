@@ -183,14 +183,14 @@ extern "C" void Randomizer_DrawCompass(PlayState* play, GetItemEntry* getItemEnt
 
 extern "C" void Randomizer_DrawBossKey(PlayState* play, GetItemEntry* getItemEntry) {
     s8 isCustomKeysEnabled = CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("CustomKeyModels"), 1);
-    s16 slot = getItemEntry->getItemId - RG_FOREST_TEMPLE_BOSS_KEY;
+    s16 slot = getItemEntry->drawItemId - RG_FOREST_TEMPLE_BOSS_KEY;
 
-    std::string CvarValue[6] = {
+    static std::string CvarValue[6] = {
         "gCosmetics.Key.ForestBoss", "gCosmetics.Key.FireBoss",   "gCosmetics.Key.WaterBoss",
         "gCosmetics.Key.SpiritBoss", "gCosmetics.Key.ShadowBoss", "gCosmetics.Key.GanonsBoss",
     };
 
-    Gfx* CustomdLists[] = {
+    static Gfx* CustomdLists[] = {
         (Gfx*)gBossKeyIconForestTempleDL, (Gfx*)gBossKeyIconFireTempleDL,   (Gfx*)gBossKeyIconWaterTempleDL,
         (Gfx*)gBossKeyIconSpiritTempleDL, (Gfx*)gBossKeyIconShadowTempleDL, (Gfx*)gBossKeyIconGanonsCastleDL,
     };
@@ -1219,6 +1219,32 @@ extern "C" void Randomizer_DrawOverworldKey(PlayState* play, GetItemEntry* getIt
               G_MTX_MODELVIEW | G_MTX_LOAD);
 
     gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gHouseKeyDL);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+extern "C" void Randomizer_DrawArchipelagoItem(PlayState* play, GetItemEntry* getItemEntry) {
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+
+    Matrix_Scale(0.035f, 0.035f, 0.035f, MTXMODE_APPLY);
+
+    // To-do: Implement "Archipelago Item Matches Contents" option.
+    // Default to "useful" item model.
+    Gfx* archipelagoItemDL = (Gfx*)gArchipelagoItemDL;
+    if (true /*ArchipelagoItemMatchesContents==true*/) {
+        if (getItemEntry->getItemId == RG_ARCHIPELAGO_ITEM_JUNK) {
+            archipelagoItemDL = (Gfx*)gArchipelagoJunkDL;
+        } else if (getItemEntry->getItemId == RG_ARCHIPELAGO_ITEM_PROGRESSIVE) {
+            archipelagoItemDL = (Gfx*)gArchipelagoProgressiveDL;
+        }
+    }
+
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_MODELVIEW | G_MTX_LOAD);
+
+    gSPDisplayList(POLY_OPA_DISP++, archipelagoItemDL);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
